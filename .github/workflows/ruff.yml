@@ -1,0 +1,33 @@
+# Lint + format verification for all Python in the repo.
+# To block merges on failure: Settings → Branches → branch protection for `main`
+# → Require status checks → enable the check named "ruff" (see PR checks list).
+name: Ruff
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ruff-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: pip install "ruff==0.15.1"
+
+      - name: Ruff check
+        run: ruff check .
+
+      - name: Ruff format (verify)
+        run: ruff format --check .
