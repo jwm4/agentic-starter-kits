@@ -1,0 +1,3 @@
+# Golden queries for agentic-safety benchmark.
+# TODO: Populate with adversarial queries for PII, policy, and injection testing.
+queries: []

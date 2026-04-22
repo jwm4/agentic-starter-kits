@@ -1,0 +1,3 @@
+# Golden queries for agentic-coherence benchmark.
+# TODO: Populate with queries that test plan coherence and response structure.
+queries: []

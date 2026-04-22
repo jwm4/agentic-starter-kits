@@ -1,0 +1,3 @@
+# Golden queries for agentic-latency benchmark.
+# TODO: Populate with queries for latency threshold testing.
+queries: []
