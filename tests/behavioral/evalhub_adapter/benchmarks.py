@@ -90,7 +90,11 @@ def load_queries(benchmark: BenchmarkDef) -> list[QuerySpec]:
         return []
 
     queries: list[QuerySpec] = []
-    for entry in data.get("queries") or []:
+    for i, entry in enumerate(data.get("queries") or []):
+        if "query" not in entry:
+            raise ValueError(
+                f"Query entry {i} missing required 'query' field in {path}"
+            )
         queries.append(
             QuerySpec(
                 query=entry["query"],

@@ -46,6 +46,14 @@ class AgenticEvalParams:
     mlflow_experiment_name: str | None = None
 
     def __post_init__(self) -> None:
+        if self.timeout_seconds <= 0:
+            raise ValueError(
+                f"timeout_seconds must be positive, got {self.timeout_seconds}"
+            )
+        if self.max_latency_seconds <= 0:
+            raise ValueError(
+                f"max_latency_seconds must be positive, got {self.max_latency_seconds}"
+            )
         if not self.verify_ssl:
             logger.warning(
                 "TLS verification disabled (verify_ssl=False) — "

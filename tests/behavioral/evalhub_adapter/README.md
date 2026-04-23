@@ -71,7 +71,8 @@ The adapter reads agent-specific settings from `JobSpec.parameters`:
 ```
 
 All fields are optional with sensible defaults. Unknown keys are silently
-ignored.
+ignored. `timeout_seconds` and `max_latency_seconds` must be positive
+(validated at job start; `ValueError` on zero/negative values).
 
 ## MLflow integration
 
@@ -82,7 +83,8 @@ importable for trace enrichment):
 1. **Trace enrichment** (per-query) — `MLflowTraceClient` from
    `harness.mlflow_client` reads agent-side traces after each query to fill
    in tool_calls and token usage. Needed because the HTTP response doesn't
-   always expose tool calls.
+   always expose tool calls. Fault-tolerant: enrichment failures are logged
+   but do not abort the query or affect scoring.
 2. **Run logging** (per-job) — `_log_mlflow_run` writes aggregated scorer
    results (metrics, pass rates, overall score, duration) to MLflow as a run.
 
@@ -98,6 +100,8 @@ importable for trace enrichment):
 
 ## What's planned
 
+- Concurrent query execution (`asyncio.gather` with semaphore — queries
+  currently run sequentially)
 - Additional benchmarks: coherence, safety, latency, full suite (previously
   spiked, query files not yet populated)
 - Vanilla Python agent query files
@@ -123,8 +127,9 @@ uv pip install .[evalhub,test-mlflow]  # + MLflow support
 
 ## Running unit tests
 
-Tests stub `evalhub` imports if the package isn't installed, so
-`uv pip install .[test]` alone is sufficient.
+Tests stub `evalhub` imports if the package isn't installed (bootstrap
+lives in `conftest.py` so it runs before any test module, regardless of
+which files are selected). `uv pip install .[test]` alone is sufficient.
 
 ```bash
 pytest tests/behavioral/evalhub_adapter/tests/ -m unit -v

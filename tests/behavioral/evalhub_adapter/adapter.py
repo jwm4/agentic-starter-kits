@@ -104,7 +104,7 @@ class AgenticEvalAdapter(FrameworkAdapter):
         )
         try:
             queries = load_queries(benchmark)
-        except FileNotFoundError as e:
+        except (FileNotFoundError, ValueError, KeyError) as e:
             _report_fatal(callbacks, str(e), JobPhase.LOADING_DATA)
             raise
 
@@ -120,6 +120,8 @@ class AgenticEvalAdapter(FrameworkAdapter):
         all_scores: list[tuple[QuerySpec, list[Score]]] = []
         failed_count = 0
 
+        # TODO: queries run sequentially; switch to asyncio.gather with a
+        # semaphore for concurrent execution once we validate on-cluster.
         async with httpx.AsyncClient(
             verify=params.verify_ssl, timeout=httpx.Timeout(params.timeout_seconds)
         ) as client:
@@ -151,9 +153,16 @@ class AgenticEvalAdapter(FrameworkAdapter):
                         ]
                     else:
                         if mlflow is not None:
-                            mlflow.enrich_eval_result(
-                                result, since_ms=request_start_ms
-                            )
+                            try:
+                                mlflow.enrich_eval_result(
+                                    result, since_ms=request_start_ms
+                                )
+                            except Exception:
+                                logger.warning(
+                                    "MLflow trace enrichment failed for query %d/%d",
+                                    i + 1, len(queries),
+                                    exc_info=True,
+                                )
 
                         query_scores = _score_result(
                             result, query_spec, scorer_names, params

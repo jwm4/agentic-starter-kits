@@ -6,66 +6,21 @@ or EvalHub dependencies.
 
 from __future__ import annotations
 
-import sys
-from types import ModuleType
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-# ---------------------------------------------------------------------------
-# Bootstrap: ensure ``evalhub`` is importable even when the real package is
-# not installed.  ``evalhub_adapter.adapter`` performs a top-level
-# ``from evalhub.adapter import ...``, which is triggered transitively when
-# Python initialises the ``evalhub_adapter`` package.  Seeding sys.modules
-# with a lightweight stub lets the rest of the test suite import cleanly.
-# ---------------------------------------------------------------------------
-if "evalhub" not in sys.modules:
-    _need_stub = True
-    try:
-        import importlib.util
-
-        _need_stub = importlib.util.find_spec("evalhub") is None
-    except (ImportError, ValueError):
-        pass
-
-    if _need_stub:  # pragma: no cover – only when evalhub truly absent
-        from dataclasses import dataclass, field
-        from typing import Any as _Any
-
-        _eh = ModuleType("evalhub")
-        _eh_adapter = ModuleType("evalhub.adapter")
-
-        @dataclass
-        class _EvaluationResult:
-            metric_name: str
-            metric_value: float
-            metric_type: str
-            num_samples: int
-            metadata: dict[str, _Any] = field(default_factory=dict)
-
-        for _name in (
-            "DefaultCallbacks", "ErrorInfo", "FrameworkAdapter",
-            "JobCallbacks", "JobPhase", "JobResults", "JobSpec",
-            "JobStatus", "JobStatusUpdate", "MessageInfo",
-        ):
-            setattr(_eh_adapter, _name, MagicMock())
-
-        _eh_adapter.EvaluationResult = _EvaluationResult  # type: ignore[attr-defined]
-        _eh.adapter = _eh_adapter  # type: ignore[attr-defined]
-        sys.modules.setdefault("evalhub", _eh)
-        sys.modules.setdefault("evalhub.adapter", _eh_adapter)
-
-from evalhub.adapter import EvaluationResult  # noqa: E402
-from evalhub_adapter.adapter import (  # noqa: E402
+from evalhub.adapter import EvaluationResult
+from evalhub_adapter.adapter import (
     _aggregate_scores,
     _compute_overall,
     _run_scorer,
     _score_result,
 )
-from evalhub_adapter.benchmarks import QuerySpec  # noqa: E402
-from evalhub_adapter.config import AgenticEvalParams  # noqa: E402
-from harness.runner import TaskResult  # noqa: E402
-from harness.scorers import Score  # noqa: E402
+from evalhub_adapter.benchmarks import QuerySpec
+from evalhub_adapter.config import AgenticEvalParams
+from harness.runner import TaskResult
+from harness.scorers import Score
 
 pytestmark = pytest.mark.unit
 

@@ -267,7 +267,7 @@ class TestLoadQueries:
         assert queries == []
 
     def test_load_queries_missing_query_key(self, fixtures_dir: Path):
-        """A query entry without 'query' raises KeyError."""
+        """A query entry without 'query' raises ValueError."""
         yaml_content = textwrap.dedent("""\
             queries:
               - expected_tools: ["search"]
@@ -275,7 +275,7 @@ class TestLoadQueries:
         (fixtures_dir / "bad_entry.yaml").write_text(yaml_content)
         bm = BenchmarkDef(queries_file="bad_entry.yaml", scorers=[])
 
-        with pytest.raises(KeyError, match="query"):
+        with pytest.raises(ValueError, match="missing required 'query' field"):
             load_queries(bm)
 
 

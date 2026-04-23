@@ -4,29 +4,19 @@ queries:
   - query: "What is the current weather in New York City?"
     expected_tools: ["search"]
     expected_elements: ["weather", "New York"]
-    difficulty: easy
-    category: factual
 
   - query: "Find recent news about artificial intelligence regulation in the EU"
     expected_tools: ["search"]
     expected_elements: ["AI", "regulation", "EU"]
-    difficulty: easy
-    category: factual
 
   - query: "What are the latest developments in quantum computing?"
     expected_tools: ["search"]
     expected_elements: ["quantum", "computing"]
-    difficulty: easy
-    category: factual
 
   - query: "Search for the population of Tokyo and compare it to New York"
     expected_tools: ["search", "search"]
     expected_elements: ["Tokyo", "New York", "population"]
-    difficulty: medium
-    category: multi_step
 
   - query: "Hello, how are you today?"
     expected_tools: []
     expected_elements: []
-    difficulty: easy
-    category: greeting
