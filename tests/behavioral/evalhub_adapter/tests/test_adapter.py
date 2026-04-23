@@ -444,18 +444,19 @@ class TestComputeOverall:
         """An empty result list returns 0.0."""
         assert _compute_overall([]) == 0.0
 
-    def test_excludes_query_error(self):
-        """The query_error metric is excluded from the overall mean."""
+    def test_query_error_penalizes_overall(self):
+        """The query_error metric (0.0) is included and penalizes the overall mean."""
         results = [
             self._make_eval_result("tool_selection", 0.8),
             self._make_eval_result("query_error", 0.0),
             self._make_eval_result("latency", 0.6),
         ]
 
-        assert _compute_overall(results) == pytest.approx(0.7, abs=1e-4)
+        expected = round((0.8 + 0.0 + 0.6) / 3, 4)
+        assert _compute_overall(results) == pytest.approx(expected, abs=1e-4)
 
     def test_all_query_error_returns_zero(self):
-        """If all results are query_error, returns 0.0."""
+        """If all results are query_error (0.0), overall is 0.0."""
         results = [
             self._make_eval_result("query_error", 0.0),
             self._make_eval_result("query_error", 0.0),

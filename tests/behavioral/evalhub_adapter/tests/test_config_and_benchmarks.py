@@ -227,7 +227,7 @@ class TestLoadQueries:
         """A non-existent queries file raises FileNotFoundError."""
         bm = BenchmarkDef(queries_file="does_not_exist.yaml", scorers=[])
 
-        with pytest.raises(FileNotFoundError, match="does_not_exist.yaml"):
+        with pytest.raises(FileNotFoundError, match=r"does_not_exist\.yaml"):
             load_queries(bm)
 
     def test_load_queries_empty(self, fixtures_dir: Path):

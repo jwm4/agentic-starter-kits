@@ -136,15 +136,28 @@ class AgenticEvalAdapter(FrameworkAdapter):
                     request_start_ms = int(time.time() * 1000)
                     result = await run_task(task_config, client=client)
 
-                    # Enrich with MLflow trace data (tool calls, tokens)
-                    if mlflow is not None and result.success:
-                        mlflow.enrich_eval_result(
-                            result, since_ms=request_start_ms
-                        )
+                    if not result.success:
+                        failed_count += 1
+                        query_scores = [
+                            Score(
+                                name="query_error",
+                                value=0.0,
+                                passed=False,
+                                details={
+                                    "query": query_spec.query,
+                                    "error": result.error or "execution_failed",
+                                },
+                            )
+                        ]
+                    else:
+                        if mlflow is not None:
+                            mlflow.enrich_eval_result(
+                                result, since_ms=request_start_ms
+                            )
 
-                    query_scores = _score_result(
-                        result, query_spec, scorer_names, params
-                    )
+                        query_scores = _score_result(
+                            result, query_spec, scorer_names, params
+                        )
                     all_scores.append((query_spec, query_scores))
                 except Exception:
                     logger.exception(
@@ -310,7 +323,6 @@ def _compute_overall(eval_results: list[EvaluationResult]) -> float:
         r.metric_value
         for r in eval_results
         if isinstance(r.metric_value, (int, float))
-        and r.metric_name != "query_error"
     ]
     if not values:
         return 0.0
