@@ -26,7 +26,7 @@ from evalhub.adapter import (
     MessageInfo,
 )
 
-from harness.runner import TaskConfig, TaskResult, run_task
+from harness.runner import TaskResult, run_task
 from harness.scorers import Score
 from harness.scorers.latency import score_latency
 from harness.scorers.plan_coherence import score_completeness, score_plan_coherence
@@ -410,8 +410,8 @@ def _log_mlflow_run(
 def main() -> None:
     """Entry point for the agentic-eval-adapter CLI.
 
-    In K8s mode: reads JobSpec from /meta/job.json (mounted ConfigMap).
-    Locally: set EVALHUB_JOB_SPEC_PATH to a local job.json file.
+    JobSpec loading is handled by EvalHub's FrameworkAdapter base class.
+    See evalhub.adapter.FrameworkAdapter for configuration details.
     """
     logging.basicConfig(
         level=logging.INFO,

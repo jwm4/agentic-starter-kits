@@ -1,4 +1,0 @@
-# Golden queries for vanilla-python-tool-use benchmark.
-# Expected tools: search_price, search_reviews (Vanilla Python agent tools).
-# TODO: Populate with queries targeting the Vanilla Python agent's tool set.
-queries: []

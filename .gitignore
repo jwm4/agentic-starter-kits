@@ -17,3 +17,5 @@ uv.lock
 agents/langflow/simple_tool_calling_agent/local/.ollama-enabled
 *.db
 CLAUDE.local.md
+.cursor
+tests/behavioral/evalhub_adapter/REFACTORING.md

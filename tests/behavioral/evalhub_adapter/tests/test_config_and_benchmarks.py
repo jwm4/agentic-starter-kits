@@ -124,12 +124,6 @@ class TestJobSpecToTaskConfig:
 
 EXPECTED_BENCHMARK_IDS = [
     "agentic-tool-use",
-    "agentic-coherence",
-    "agentic-safety",
-    "agentic-latency",
-    "agentic-full",
-    "vanilla-python-tool-use",
-    "vanilla-python-full",
 ]
 
 
@@ -214,12 +208,8 @@ class TestLoadQueries:
               - query: "What is 2+2?"
                 expected_tools: ["calculator"]
                 expected_elements: ["4"]
-                difficulty: medium
-                category: math
               - query: "Search for cats"
                 expected_tools: ["web_search"]
-                difficulty: hard
-                category: search
         """)
         (fixtures_dir / "test_queries.yaml").write_text(yaml_content)
         bm = BenchmarkDef(queries_file="test_queries.yaml", scorers=["tool_selection"])
@@ -231,10 +221,7 @@ class TestLoadQueries:
         assert queries[0].query == "What is 2+2?"
         assert queries[0].expected_tools == ["calculator"]
         assert queries[0].expected_elements == ["4"]
-        assert queries[0].difficulty == "medium"
-        assert queries[0].category == "math"
         assert queries[1].query == "Search for cats"
-        assert queries[1].difficulty == "hard"
 
     def test_load_queries_missing_file(self, fixtures_dir: Path):
         """A non-existent queries file raises FileNotFoundError."""
@@ -256,7 +243,7 @@ class TestLoadQueries:
         assert queries == []
 
     def test_load_queries_defaults(self, fixtures_dir: Path):
-        """Missing difficulty/category default to 'easy' and 'factual'."""
+        """Missing optional fields default to empty lists."""
         yaml_content = textwrap.dedent("""\
             queries:
               - query: "Hello world"
@@ -270,8 +257,6 @@ class TestLoadQueries:
         assert queries[0].query == "Hello world"
         assert queries[0].expected_tools == []
         assert queries[0].expected_elements == []
-        assert queries[0].difficulty == "easy"
-        assert queries[0].category == "factual"
 
     def test_load_queries_null_value(self, fixtures_dir: Path):
         """queries: null (YAML None) returns an empty list, not TypeError."""

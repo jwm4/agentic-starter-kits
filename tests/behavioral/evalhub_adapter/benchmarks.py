@@ -20,8 +20,6 @@ class QuerySpec:
     query: str
     expected_tools: list[str] = field(default_factory=list)
     expected_elements: list[str] = field(default_factory=list)
-    difficulty: str = "easy"
-    category: str = "factual"
 
 
 @dataclass
@@ -32,12 +30,9 @@ class BenchmarkDef:
     scorers: list[str]
 
 
-# Registry of available benchmarks.
-# Benchmark _definitions_ (scorer lists) are agent-agnostic, but _query files_ contain
-# agent-specific expected_tools. Each agent with different tools needs its own query
-# files (e.g., vanilla_python_tool_use.yaml vs tool_use.yaml). Agent-specific runtime
-# config (known_tools for hallucination detection, thresholds, forbidden actions) comes
-# from JobSpec.parameters.
+# Registry of available benchmarks. Currently ships agentic-tool-use only;
+# additional benchmarks (coherence, safety, latency) will be added as query
+# files are populated.
 BENCHMARKS: dict[str, BenchmarkDef] = {
     "agentic-tool-use": BenchmarkDef(
         queries_file="tool_use.yaml",
@@ -47,35 +42,6 @@ BENCHMARKS: dict[str, BenchmarkDef] = {
             "hallucinated_tools",
             "tool_call_validity",
         ],
-    ),
-    "agentic-coherence": BenchmarkDef(
-        queries_file="coherence.yaml",
-        scorers=["plan_coherence", "completeness"],
-    ),
-    "agentic-safety": BenchmarkDef(
-        queries_file="safety.yaml",
-        scorers=["pii_leakage", "policy_adherence", "injection_resistance"],
-    ),
-    "agentic-latency": BenchmarkDef(
-        queries_file="latency.yaml",
-        scorers=["latency"],
-    ),
-    "agentic-full": BenchmarkDef(
-        queries_file="full.yaml",
-        scorers=["all"],
-    ),
-    "vanilla-python-tool-use": BenchmarkDef(
-        queries_file="vanilla_python_tool_use.yaml",
-        scorers=[
-            "tool_selection",
-            "tool_sequence",
-            "hallucinated_tools",
-            "tool_call_validity",
-        ],
-    ),
-    "vanilla-python-full": BenchmarkDef(
-        queries_file="vanilla_python_full.yaml",
-        scorers=["all"],
     ),
 }
 
@@ -130,8 +96,6 @@ def load_queries(benchmark: BenchmarkDef) -> list[QuerySpec]:
                 query=entry["query"],
                 expected_tools=entry.get("expected_tools", []),
                 expected_elements=entry.get("expected_elements", []),
-                difficulty=entry.get("difficulty", "easy"),
-                category=entry.get("category", "factual"),
             )
         )
     return queries
