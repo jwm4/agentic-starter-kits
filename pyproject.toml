@@ -53,6 +53,8 @@ markers = [
     "adversarial: Agent-level security/safety tests (PII, API keys, dangerous ops)",
     "model_baseline: Model-level tests (prompt injection resistance) - not agent-specific",
     "slow: Tests that run multiple iterations (pass@k, repeated queries)",
+    # --- Integration test suite (agents/*/tests/integration/) ---
+    "integration: Deployment integration tests (build, deploy, health check, teardown)",
 ]
 
 [tool.setuptools.packages.find]

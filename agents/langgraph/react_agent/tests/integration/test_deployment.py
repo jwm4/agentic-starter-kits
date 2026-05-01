@@ -6,6 +6,7 @@ import os
 import pytest
 from integration.utils import (
     MakeTargetError,
+    RouteNotFoundError,
     get_route,
     health_check,
     run_make,
@@ -24,6 +25,12 @@ def agent_dir(repo_root):
 
 def _write_env_file(agent_dir, container_image):
     """Write a .env file so Makefile targets can source it."""
+    missing = [v for v in ("BASE_URL", "MODEL_ID") if v not in os.environ]
+    if missing:
+        pytest.fail(
+            f"Missing required env vars: {', '.join(missing)}. "
+            "Set them in the CI workflow or export locally."
+        )
     env_path = agent_dir / ".env"
     env_path.write_text(
         f"API_KEY={os.environ.get('API_KEY', 'not-needed')}\n"
@@ -54,8 +61,8 @@ def deployed_agent(cluster_auth, agent_dir):
 
         yield route_url
 
-    except MakeTargetError as exc:
-        pytest.fail(f"Deployment failed at make {exc.target}: {exc}")
+    except (MakeTargetError, RouteNotFoundError) as exc:
+        pytest.fail(f"Deployment failed: {exc}")
 
     finally:
         if deployed:
