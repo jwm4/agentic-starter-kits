@@ -1,0 +1,22 @@
+# Pre-commit configuration for agentic-starter-kits
+# Install: pre-commit install --install-hooks
+# Run manually: pre-commit run --all-files
+
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  # Enforce Conventional Commits in commit messages
+  - repo: https://github.com/espressif/conventional-precommit-linter
+    rev: v1.11.0
+    hooks:
+      - id: conventional-precommit-linter
+        stages: [commit-msg]
+        # more args can be added here to customize the linter behavior
+        # more args can be found here: https://github.com/espressif/conventional-precommit-linter
+        args:
+          - --types=feat,fix,docs,chore,test,perf,refactor,ci,build,style,revert
+          - --subject-min-length=10
+          - --subject-max-length=72
+          - --allow-breaking

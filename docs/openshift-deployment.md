@@ -45,9 +45,10 @@ cd agents/langgraph/react_agent   # or any other agent
 ```bash
 make init        # creates .env from .env.example
 ```
+
 Edit `.env`:
 
-```
+```ini
 API_KEY=your-api-key-here
 BASE_URL=https://<model-endpoint>/v1
 MODEL_ID=llama3.2:3b
@@ -78,7 +79,7 @@ This creates a BuildConfig (if it doesn't exist) and uploads your local source t
 
 After the build completes, set `CONTAINER_IMAGE` in your `.env` to the internal registry URL:
 
-```
+```ini
 CONTAINER_IMAGE=image-registry.openshift-image-registry.svc:5000/<namespace>/<agent-name>:latest
 ```
 
@@ -123,6 +124,7 @@ Each agent has a `values.yaml` that overrides the shared chart defaults at `char
 
 - **Change resources**: edit `resources.requests` / `resources.limits` in the agent's `values.yaml`
 - **Disable OpenShift Route** and use K8s Ingress instead:
+
   ```bash
   helm upgrade --install <agent-name> ../../charts/agent \
     -f values.yaml \
@@ -130,6 +132,7 @@ Each agent has a `values.yaml` that overrides the shared chart defaults at `char
     --set ingress.enabled=true \
     --set ingress.host=my-agent.example.com
   ```
+
 - **Add environment variables**: add entries to `env:` in the agent's `values.yaml`
 - **Add volumes**: add entries to `volumes:` and `volumeMounts:` (see the agentic_rag agent for an example)
 
@@ -137,7 +140,7 @@ Each agent has a `values.yaml` that overrides the shared chart defaults at `char
 
 All agents share a single Helm chart at `charts/agent/`. The override chain is:
 
-```
+```text
 charts/agent/values.yaml        <-- global defaults
   agents/.../values.yaml        <-- agent-specific overrides
     --set flags                 <-- CLI overrides at deploy time

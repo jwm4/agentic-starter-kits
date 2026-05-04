@@ -6,7 +6,7 @@ This guide explains how to add a new agent template to this repository.
 
 Agents are organized by framework:
 
-```
+```text
 agents/
   langgraph/        # LangGraph-based agents
   llamaindex/       # LlamaIndex-based agents

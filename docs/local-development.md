@@ -68,7 +68,7 @@ make init                          # creates .env
 
 Edit `.env`:
 
-```
+```ini
 API_KEY=dummy
 BASE_URL=http://localhost:8321/v1
 MODEL_ID=llama3.2:3b
@@ -84,7 +84,7 @@ The agent starts on `http://localhost:8000`.
 
 If you have an OpenAI-compatible API endpoint (OpenAI, Azure OpenAI, vLLM, etc.), just point `BASE_URL` and `API_KEY` at it:
 
-```
+```ini
 API_KEY=sk-...
 BASE_URL=https://api.openai.com/v1
 MODEL_ID=gpt-4o

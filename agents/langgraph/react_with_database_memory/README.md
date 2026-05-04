@@ -38,7 +38,7 @@ Key features:
 
 ## Local Development
 
-#### Initiating base
+### Initiating base
 
 `make init` creates a `.env` file from `.env.example`. Set your environment variables in the `.env` file.
 
@@ -47,11 +47,11 @@ cd agents/langgraph/react_with_database_memory
 make init
 ```
 
-#### Tracing (optional)
+### Tracing (optional)
 
 Tracing is optional. If MLflow tracing is required, enable it by uncommenting and setting the following environment variables in the `.env` file.
 
-##### Tracing with a local MLflow server
+#### Tracing with a local MLflow server
 
 ```ini
 MLFLOW_TRACKING_URI="http://localhost:5000"
@@ -69,7 +69,7 @@ uv run --extra tracing mlflow server --port 5000
 
 When `MLFLOW_TRACKING_URI` is set, `make run-app` and `make run-cli` will automatically install the tracing dependency.
 
-##### Tracing with an OpenShift MLflow server
+#### Tracing with an OpenShift MLflow server
 
 To enable tracing and logging with MLflow on your OpenShift cluster, add the following environment variables to your `.env` file:
 
@@ -82,6 +82,7 @@ MLFLOW_WORKSPACE="default"
 ```
 
 **Notes:**
+
 - `MLFLOW_TRACKING_URI` - URL of your MLflow server. For local development, use `http://localhost:5000`. If using MLflow on an OpenShift cluster, replace `<openshift-dashboard-url>` with your cluster's data science gateway URL.
 - `MLFLOW_TRACKING_TOKEN` - Required for OpenShift only. Your OpenShift authentication token, obtained from the OpenShift console.
 - `MLFLOW_EXPERIMENT_NAME` - A descriptive name for your experiment (e.g., "LangGraph DB Memory Demo")
@@ -94,7 +95,7 @@ MLFLOW_WORKSPACE="default"
 
 - You can control how long the application waits for the MLflow server by setting `MLFLOW_HEALTH_CHECK_TIMEOUT` (in seconds, default: `5`).
 
-#### PostgreSQL Configuration
+### PostgreSQL Configuration
 
 This agent requires a PostgreSQL database for conversation persistence. Add the following to your `.env`:
 
@@ -136,7 +137,7 @@ createdb agent_memory
 
 The database tables are created automatically on first run -- no manual schema setup is needed.
 
-#### Creating environment
+### Creating environment
 
 Now you will remove old .venv and create new. Next dependencies will be installed.
 
@@ -144,7 +145,7 @@ Now you will remove old .venv and create new. Next dependencies will be installe
 make env
 ```
 
-#### Setup Ollama
+### Setup Ollama
 
 This will install ollama if it is not installed already. Then pull needed models for local work.
 The default model is `llama3.1:8b`. To use a different model, pass `MODEL=`:
@@ -154,7 +155,7 @@ The default model is `llama3.1:8b`. To use a different model, pass `MODEL=`:
 make ollama
 ```
 
-#### Run llama server
+### Run llama server
 
 > **Keep this terminal open** – the server needs to keep running.
 > You should see output indicating the server started on `http://localhost:8321`.
@@ -163,7 +164,7 @@ make ollama
 make llama-server
 ```
 
-#### Run the interactive web application
+### Run the interactive web application
 
 > **Keep this terminal open** – the app needs to keep running.
 > You should see output indicating the app started on `http://localhost:8000`.
@@ -173,7 +174,7 @@ cd agents/langgraph/react_with_database_memory
 make run-app           # fails if port is already in use and print steps TO-DO
 ```
 
-#### Interactive CLI
+### Interactive CLI
 
 For terminal-based testing without a browser:
 
@@ -223,9 +224,9 @@ POSTGRES_PASSWORD = your_db_password
 
   Examples:
 
-    - Quay.io: `quay.io/your-username/langgraph-db-memory-agent:latest`
-    - Docker Hub: `docker.io/your-username/langgraph-db-memory-agent:latest`
-    - GHCR: `ghcr.io/your-org/langgraph-db-memory-agent:latest`
+  - Quay.io: `quay.io/your-username/langgraph-db-memory-agent:latest`
+  - Docker Hub: `docker.io/your-username/langgraph-db-memory-agent:latest`
+  - GHCR: `ghcr.io/your-org/langgraph-db-memory-agent:latest`
 
   > **Note:** OpenShift must be able to pull the container image. Make the image **public**, or configure
   an [image pull secret](https://docs.openshift.com/container-platform/latest/openshift_images/managing_images/using-image-pull-secrets.html)
@@ -360,7 +361,7 @@ This agent combines three key components:
 2. **PostgresSaver Checkpointer** -- persistent conversation memory in PostgreSQL
 3. **ChatOpenAI** -- OpenAI-compatible LLM client (connects to Llama Stack or any OpenAI-compatible endpoint)
 
-```
+```text
 User Input --> LangGraph Agent --> ChatOpenAI --> LLM (Ollama/OpenAI)
                    |                               |
             PostgreSQL <-- PostgresSaver <-- Messages & State
@@ -393,14 +394,19 @@ To list all stored threads or view messages in a specific thread:
 
 1. Edit `examples/query_existing_deployment.py`
 2. To list all threads, leave `thread_id` empty:
+
    ```python
    thread_id = ""
    ```
+
    To view messages for a specific thread, set it:
+
    ```python
    thread_id = "123e4567-e89b-12d3-a456-426614174000"
    ```
+
 3. Run the script:
+
    ```bash
    uv run python examples/query_existing_deployment.py
    ```
@@ -411,14 +417,19 @@ To permanently delete a conversation thread (or all threads), use the provided s
 
 1. Edit `examples/clear_thread_history.py`
 2. To delete a specific thread, set the `thread_id`:
+
    ```python
    thread_id = "123e4567-e89b-12d3-a456-426614174000"
    ```
+
    To delete **all** threads, leave it empty:
+
    ```python
    thread_id = ""
    ```
+
 3. Run the script:
+
    ```bash
    uv run python examples/clear_thread_history.py
    ```

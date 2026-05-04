@@ -30,6 +30,7 @@ make dry-run    # preview Helm manifests
 - All agents must expose `POST /chat/completions` (JSON + SSE) and `GET /health`
 - Source code in `src/<agent_name>/` within each agent directory
 - Keep agents self-contained -- never import from another agent's `src/`
+
 ## Workflow
 
 - `cd` into the agent directory first -- Makefiles use relative paths and read `agent.yaml` at runtime

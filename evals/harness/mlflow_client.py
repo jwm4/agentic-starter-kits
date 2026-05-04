@@ -39,6 +39,7 @@ class MLflowTraceClient:
         wait_seconds: float | None = None,
         max_retries: int | None = None,
     ) -> None:
+        """Initialize the trace client with MLflow connection settings."""
         self.tracking_uri = tracking_uri
         self.experiment_name = experiment_name
         # Configurable via env vars for CI tuning
@@ -52,22 +53,59 @@ class MLflowTraceClient:
         self._experiment_id = None
 
     def _get_client(self):
-        """Lazy-init the MLflow client."""
+        """Lazy-init the MLflow client and re-resolve experiment if needed."""
         if self._client is None:
             import mlflow
 
             mlflow.set_tracking_uri(self.tracking_uri)
             self._client = mlflow.MlflowClient(self.tracking_uri)
-
-            # Look up experiment ID
+        if self._experiment_id is None:
             experiment = self._client.get_experiment_by_name(self.experiment_name)
             if experiment:
                 self._experiment_id = experiment.experiment_id
             else:
-                logger.warning(
-                    f"MLflow experiment '{self.experiment_name}' not found"
-                )
+                logger.warning("MLflow experiment '%s' not found", self.experiment_name)
         return self._client
+
+    def verify_connection(self) -> bool:
+        """Check that the MLflow server is reachable and auth is valid.
+
+        Returns True if the client initializes without auth errors. A missing
+        experiment is not a failure -- _log_mlflow_run creates it on demand.
+        Logs specific guidance for auth failures and expired tokens.
+        """
+        try:
+            self._get_client()
+            if self._experiment_id is None:
+                logger.info(
+                    "MLflow experiment '%s' does not exist yet — "
+                    "it will be created during run logging.",
+                    self.experiment_name,
+                )
+            return True
+        except Exception as exc:
+            msg = str(exc)
+            if "401" in msg or "403" in msg or "Authorization" in msg:
+                logger.error(
+                    "MLflow auth failed (%s). Ensure MLFLOW_TRACKING_TOKEN is "
+                    "set in the adapter pod environment. EvalHub does not "
+                    "support secretKeyRef — pass the token as a literal value "
+                    "in the provider runtime Env.",
+                    msg,
+                )
+            elif "Expecting value" in msg or "JSONDecodeError" in msg:
+                logger.error(
+                    "MLflow returned non-JSON (likely an OAuth redirect). "
+                    "This usually means MLFLOW_TRACKING_TOKEN is expired or "
+                    "invalid. The RHOAI OAuth proxy redirects to a login page "
+                    "when the token is rejected. Refresh the token: "
+                    "export MLFLOW_TRACKING_TOKEN=$(oc whoami -t) and re-register "
+                    "the provider. Raw error: %s",
+                    msg,
+                )
+            else:
+                logger.error("MLflow connection check failed: %s", msg)
+            return False
 
     def get_latest_trace(
         self,
@@ -85,8 +123,12 @@ class MLflowTraceClient:
         """
         import mlflow
 
-        wait_seconds = wait_seconds if wait_seconds is not None else self.default_wait_seconds
-        max_retries = max_retries if max_retries is not None else self.default_max_retries
+        wait_seconds = (
+            wait_seconds if wait_seconds is not None else self.default_wait_seconds
+        )
+        max_retries = (
+            max_retries if max_retries is not None else self.default_max_retries
+        )
 
         client = self._get_client()
         if self._experiment_id is None:
@@ -105,7 +147,9 @@ class MLflowTraceClient:
 
                     # Skip stale traces from before our request
                     if since_ms is not None:
-                        raw_ts = trace_row.get("request_time") or trace_row.get("timestamp_ms")
+                        raw_ts = trace_row.get("request_time") or trace_row.get(
+                            "timestamp_ms"
+                        )
                         try:
                             request_time = int(raw_ts) if raw_ts is not None else None
                         except (TypeError, ValueError):
@@ -128,7 +172,9 @@ class MLflowTraceClient:
                     if trace_id:
                         return self._extract_trace_data(client, trace_id)
             except Exception as e:
-                logger.warning(f"MLflow trace query attempt {attempt + 1}/{max_retries} failed: {e}")
+                logger.warning(
+                    f"MLflow trace query attempt {attempt + 1}/{max_retries} failed: {e}"
+                )
 
             if attempt < max_retries - 1:
                 time.sleep(wait_seconds)
@@ -141,9 +187,7 @@ class MLflowTraceClient:
         )
         return None
 
-    def _extract_trace_data(
-        self, client, request_id: str
-    ) -> TraceData | None:
+    def _extract_trace_data(self, client, request_id: str) -> TraceData | None:
         """Extract tool calls and token usage from a trace's spans."""
         try:
             trace = client.get_trace(request_id)
@@ -164,9 +208,7 @@ class MLflowTraceClient:
             span_type = getattr(span, "span_type", None) or ""
             span_name = getattr(span, "name", "")
 
-            span_summaries.append(
-                {"name": span_name, "type": str(span_type)}
-            )
+            span_summaries.append({"name": span_name, "type": str(span_type)})
 
             # Extract tool calls from TOOL-type spans
             if "TOOL" in str(span_type).upper():
@@ -196,9 +238,7 @@ class MLflowTraceClient:
                 usage = attrs.get("mlflow.chat.tokenUsage", {})
                 if isinstance(usage, dict):
                     total_prompt_tokens += usage.get("input_tokens", 0) or 0
-                    total_completion_tokens += (
-                        usage.get("output_tokens", 0) or 0
-                    )
+                    total_completion_tokens += usage.get("output_tokens", 0) or 0
 
         token_usage = {
             "prompt_tokens": total_prompt_tokens or None,
@@ -230,9 +270,7 @@ class MLflowTraceClient:
 
         Mutates and returns the result.
         """
-        trace_data = self.get_latest_trace(
-            since_ms=since_ms, wait_seconds=wait_seconds
-        )
+        trace_data = self.get_latest_trace(since_ms=since_ms, wait_seconds=wait_seconds)
         if trace_data is None:
             return result
 

@@ -1,6 +1,7 @@
 <div style="text-align: center;">
 
 ![Agentic Starter Kits](/images/ask_logo.png)
+
 # Agentic Starter Kits
 
 </div>
@@ -48,7 +49,7 @@ Agents in this repository can support two deployment modes:
 
 ## Repository Structure
 
-```
+```text
 agentic-starter-kits/
 ├── agents/
 │   ├── langgraph/
@@ -70,6 +71,9 @@ agentic-starter-kits/
 │   │   └── simple_tool_calling_agent/ # Langflow tool-calling agent
 │   └── a2a/
 │       └── langgraph_crewai_agent/  # A2A multi-agent (LangGraph + CrewAI)
+├── evals/
+│   ├── harness/                     # Shared eval engine (runner, scorers, MLflow client)
+│   └── evalhub_adapter/             # EvalHub on-cluster adapter (JobSpec → harness)
 ├── tests/
 │   └── behavioral/                  # Behavioral eval suite (shared infra)
 ├── charts/
@@ -143,13 +147,14 @@ See `tests/behavioral/` for full details.
 - [OpenShift Deployment](./docs/openshift-deployment.md) — Helm-based deployment guide
 - [Adding a New Agent](./docs/adding-a-new-agent.md) — How to contribute a new agent template
 - [Adding Behavioral Tests](./docs/adding-behavioral-tests.md) — How to add test coverage for an agent
+- [Adding an EvalHub Agent Integration](./docs/adding-evalhub-agent-integration.md) — How to integrate a new agent into the EvalHub evaluation pipeline
 
 ## Additional Resources
 
-- **Llama Stack Documentation**: https://llama-stack.readthedocs.io/
-- **Ollama Documentation**: https://docs.ollama.com/
-- **OpenShift Documentation**: https://docs.openshift.com/
-- **Kubernetes**: https://kubernetes.io/docs/
+- **Llama Stack Documentation**: <https://llama-stack.readthedocs.io/>
+- **Ollama Documentation**: <https://docs.ollama.com/>
+- **OpenShift Documentation**: <https://docs.openshift.com/>
+- **Kubernetes**: <https://kubernetes.io/docs/>
 
 ## Contributing
 

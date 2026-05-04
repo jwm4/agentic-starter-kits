@@ -64,6 +64,7 @@ Every agent has a `tracing.py` module at `src/<package_name>/tracing.py` that ex
 #### `enable_tracing()`
 
 Called once during FastAPI `lifespan` startup. Responsible for:
+
 1. Loading `.env` via `load_dotenv()`
 2. Checking if `MLFLOW_TRACKING_URI` is set (if not, tracing is skipped)
 3. Health-checking the MLflow server with retry logic
@@ -131,10 +132,13 @@ The tracing system is designed to never prevent the agent from starting:
 This agent has no framework-level orchestration, so autolog only captures raw OpenAI `responses.create()` calls. Manual wrapping adds the orchestration layer:
 
 **Non-streaming (`_handle_chat` in `main.py`):**
+
 - `_AIAgentAdapter.run()` in `agent.py` wraps `agent.query()` with `span_type="agent"` and each tool function with `span_type="tool"`
 
 **Streaming (`_handle_stream` in `main.py`):**
+
 - Creates `AIAgent` directly (bypasses `_AIAgentAdapter`) and manually applies the same wrapping:
+
   ```python
   for name, func in adapter._tools:
       func = wrap_func_with_mlflow_trace(func, span_type="tool")
@@ -193,6 +197,7 @@ No `LLM_PROVIDER` env var needed — `OpenAILike` is a LlamaIndex component, ful
 CrewAI is the most complex integration because it has two layers that need separate autologs:
 
 #### Layer 1: Orchestration (`mlflow.crewai.autolog()`)
+
 Captures Crew, Task, and Agent spans. However, in newer CrewAI versions (>=1.10), **tool spans are not captured by autolog**. This is why tools are manually wrapped in `crew.py`:
 
 ```python
@@ -202,6 +207,7 @@ for tool in tools:
 ```
 
 #### Layer 2: LLM calls (provider-specific autolog)
+
 CrewAI has a factory pattern (`LLM.__new__`) that routes to different provider backends. Native providers (OpenAI, Anthropic, Gemini, Azure, Bedrock) bypass the `crewai.LLM.call` method that `mlflow.crewai.autolog()` patches, so a second provider-specific autolog is needed.
 
 The `LLM_PROVIDER` env var controls which autolog is enabled:
@@ -216,6 +222,7 @@ The `LLM_PROVIDER` env var controls which autolog is enabled:
 | `bedrock` | `mlflow.bedrock` | AWS Bedrock models |
 
 **How the factory pattern determines the provider path:**
+
 - `openai/gpt-4o-mini` (recognized model) -> `OpenAICompletion` (native, bypasses `LLM.call`)
 - `openai/my-custom-model` (unrecognized) -> base `LLM` class (LiteLLM fallback)
 
@@ -363,6 +370,7 @@ Every agent's traces consist of up to three layers. Which layers are present dep
 The amount of tracing code required for a new agent depends on how well MLflow's autolog supports the framework. We classify frameworks into three levels:
 
 **Level A — Full auto-tracing.** All three layers are captured automatically with no manual wrapping needed. `tracing.py` only contains `enable_tracing()` and no `wrap_func_with_mlflow_trace()` function. There are two variants:
+
 - **Autolog variant**: `mlflow.<framework>.autolog()` captures everything. Examples: LangGraph (`mlflow.langchain`), LlamaIndex (`mlflow.llama_index`).
 - **OpenTelemetry variant**: The framework natively emits OTel spans; `tracing.py` sets up an OTLP exporter to forward them to MLflow. Requires a SQL-based MLflow backend and `opentelemetry-exporter-otlp-proto-http`. Example: Google ADK.
 
@@ -452,25 +460,33 @@ for span in trace.search_spans():
 ## Known Issues & Gotchas
 
 ### CrewAI: Tool spans not captured by autolog (>=1.10)
+
 `mlflow.crewai.autolog()` does not capture tool spans in newer CrewAI versions. Tools are manually wrapped in `crew.py` via `wrap_func_with_mlflow_trace(tool._run, span_type="tool", name=tool.name)`. If a future CrewAI/MLflow version fixes this, remove the manual wrapping to avoid duplicate spans.
 
 ### CrewAI: Native providers bypass `LLM.call` patch
+
 CrewAI's `LLM.__new__` factory returns provider-specific subclasses (`OpenAICompletion`, `AnthropicCompletion`, etc.) that inherit from `BaseLLM`, not `LLM`. Since `mlflow.crewai.autolog()` patches `crewai.LLM.call`, these native subclasses bypass the patch entirely. This is why a separate provider-specific autolog (`mlflow.openai.autolog()`, etc.) is required via the `LLM_PROVIDER` env var.
 
 ### CrewAI: Hardcoded `openai/` prefix
+
 `main.py` hardcodes `model=f"openai/{model_id}"`, which means CrewAI's factory decides the provider path based on whether it recognizes the model name — not user intent. `openai/gpt-4o-mini` goes native OpenAI; `openai/my-custom-model` falls back to LiteLLM. Users who want to use non-OpenAI providers need to edit `main.py`.
 
 ### Vanilla Python: Streaming required a separate tracing fix
+
 The streaming path (`_handle_stream`) creates `AIAgent` directly rather than going through `_AIAgentAdapter.run()`. Without explicit wrapping, `mlflow.openai.autolog()` creates separate traces per `responses.create()` call instead of grouping them under a single agent span. The fix manually applies `wrap_func_with_mlflow_trace` in the streaming path. This is specific to the Vanilla Python agent — LangGraph and LlamaIndex handle streaming tracing natively via their autologs.
 
 ### LangGraph/LlamaIndex: Empty `content` on tool call messages
+
 When the LLM makes a function call, the `AIMessage.content` is empty (the call info is in `tool_calls`). This appears in traces as tool-call spans with no content text. This is correct function-calling API behavior, not a tracing issue.
 
 ### Google ADK: Requires SQL-based MLflow backend
+
 Google ADK's tracing uses OpenTelemetry OTLP ingestion, which is only supported with SQL-based backend stores (SQLite, PostgreSQL, MySQL). The default file-based backend (`mlflow server --port 5000`) does not work. Start with `mlflow server --backend-store-uri sqlite:///mlflow.db --port 5000`. This only affects Google ADK — all other agents work with file-based backends.
 
 ### Google ADK: Extra package required for tracing
+
 In addition to MLflow, Google ADK tracing requires `opentelemetry-exporter-otlp-proto-http` to be installed. Without it, `enable_tracing()` will log a warning (`"MLflow or OpenTelemetry packages not installed"`) and continue without tracing.
 
 ### MLflow must be installed if `MLFLOW_TRACKING_URI` is set
+
 MLflow imports are inside `enable_tracing()`, so the agent starts fine without MLflow when `MLFLOW_TRACKING_URI` is not set. But if the URI is set, `enable_tracing()` will fail at startup with a clear `ModuleNotFoundError` telling the user to install MLflow. This is intentional — silently skipping tracing when the user explicitly requested it would hide a misconfiguration.

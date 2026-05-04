@@ -60,7 +60,7 @@ sudo systemctl start podman     # start the podman service
 
 ## Local Development
 
-#### Initiating base
+### Initiating base
 
 Here you copy .env.example file into .env and generate Langfuse secrets
 
@@ -69,7 +69,7 @@ cd agents/langflow/simple_tool_calling_agent
 make init
 ```
 
-#### Setup Ollama
+### Setup Ollama
 
 This will install ollama if it is not installed already. Then pull needed models for local work.
 The default model is `qwen2.5:7b`. To use a different model, pass `MODEL=`:
@@ -79,7 +79,7 @@ The default model is `qwen2.5:7b`. To use a different model, pass `MODEL=`:
 make ollama
 ```
 
-#### Run llama server
+### Run llama server
 
 > **Keep this terminal open** – the server needs to keep running.
 > You should see output indicating the server started on `http://localhost:8321`.
@@ -88,7 +88,7 @@ make ollama
 make llama-server
 ```
 
-#### Run the Langflow stack
+### Run the Langflow stack
 
 > **Keep this terminal open** – the stack needs to keep running.
 > This starts Langflow + PostgreSQL + Langfuse v3 (ClickHouse, MinIO, Redis).
@@ -97,27 +97,27 @@ make llama-server
 make run
 ```
 
-#### Import the flow
+### Import the flow
 
-1. Open http://localhost:7860
+1. Open <http://localhost:7860>
 2. On first launch, Langflow asks you to create a flow — create a **Blank Flow** (this is just to get past the initial
    screen)
 3. Click the **Langflow icon** (top left) to go to the projects page
 4. Click **Upload Flow** and select `flows/outdoor-activity-agent.json`
 
-#### Configuration
+### Configuration
 
 Configure the flow components:
 
 | Component        | Field      | Value                                     |
 |------------------|------------|-------------------------------------------|
-| KServe vLLM      | api_base   | http://host.containers.internal:8321/v1   |
+| KServe vLLM      | api_base   | `http://host.containers.internal:8321/v1`   |
 | KServe vLLM      | model_name | ollama/qwen2.5:7b                         |
 | KServe vLLM      | api_key    | not-needed-for-local-development          |
-| NPS Search Parks | api_key    | Get one free at https://developer.nps.gov |
+| NPS Search Parks | api_key    | Get one free at `https://developer.nps.gov` |
 | NPS Park Alerts  | api_key    | Same NPS key as above                     |
 
-#### Pointing to a locally hosted model
+### Pointing to a locally hosted model
 
 See [Local Development](../../../docs/local-development.md) for Ollama + Llama Stack setup for local model serving.
 
@@ -128,7 +128,7 @@ See [Local Development](../../../docs/local-development.md) for Ollama + Llama S
 - `api_key` — Llama Stack doesn't require authentication, so any non-empty string works
 - `model_name` — not all models handle tool calling well. `qwen2.5:7b` and `llama3.1:8b` are known to work
 
-#### Pointing to a remotely hosted model
+### Pointing to a remotely hosted model
 
 Update the **KServe vLLM** component in the Langflow UI:
 
@@ -138,21 +138,21 @@ Update the **KServe vLLM** component in the Langflow UI:
 | model_name | your-model-id          |
 | api_key    | your-api-key           |
 
-#### Running the Agent
+### Running the Agent
 
 Run the agent from the Langflow UI by clicking the **Play** button.
 
-#### Tracing
+### Tracing
 
 Langfuse v3 tracing is included in the local stack and starts automatically. No additional setup needed.
 
-- **Langfuse UI**: http://localhost:3000
-- **Login**: admin@langflow.local / password auto-generated in `local/.env`
+- **Langfuse UI**: <http://localhost:3000>
+- **Login**: `admin@langflow.local` / password auto-generated in `local/.env`
 
 After running the agent, select the **Langflow Agent** project and click **Traces** to see agent executions — LLM calls,
 tool invocations, inputs, and outputs.
 
-#### Stopping the stack
+### Stopping the stack
 
 ```bash
 make stop        # stop services, keep data
@@ -204,13 +204,13 @@ oc get inferenceservice --all-namespaces
 
       | Option | api_base | model_name |
             |--------|----------|------------|
-      | Via LlamaStack (external route) | https://\<llamastack-route-host\>/v1 | vllm//mnt/models |
-      | Via LlamaStack (internal) | http://llamastack-service.\<namespace\>.svc.cluster.local:8321/v1 | vllm//mnt/models |
-      | Direct to KServe (internal) | http://\<model\>-predictor.\<namespace\>.svc.cluster.local:8080/v1 | /mnt/models |
+      | Via LlamaStack (external route) | `https://<llamastack-route-host>/v1` | vllm//mnt/models |
+      | Via LlamaStack (internal) | `http://llamastack-service.<namespace>.svc.cluster.local:8321/v1` | vllm//mnt/models |
+      | Direct to KServe (internal) | `http://<model>-predictor.<namespace>.svc.cluster.local:8080/v1` | /mnt/models |
 
       Use the external route if Langflow can't reach LlamaStack internally (network policy). Use `oc get routes` and
       `oc get inferenceservice` to find the actual hostnames and namespaces.
-    - **NPS Search Parks**: set `api_key` (get one free at https://developer.nps.gov)
+    - **NPS Search Parks**: set `api_key` (get one free at <https://developer.nps.gov>)
     - **NPS Park Alerts**: set `api_key` (same NPS key)
 4. Run the agent
 

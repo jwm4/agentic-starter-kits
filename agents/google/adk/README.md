@@ -28,7 +28,7 @@ connector to route inference through a LlamaStack server's OpenAI-compatible API
 
 ## Local Development
 
-#### Initiating base
+### Initiating base
 
 Here you copy .env.example file into .env
 
@@ -39,7 +39,7 @@ make init
 
 Edit `.env` with your configuration, then:
 
-#### Creating environment
+### Creating environment
 
 Now you will remove old .venv and create new. Next dependencies will be installed.
 
@@ -47,7 +47,7 @@ Now you will remove old .venv and create new. Next dependencies will be installe
 make env
 ```
 
-#### Setup Ollama
+### Setup Ollama
 
 This will install ollama if it is not installed already. Then pull needed models for local work.
 The default model is `llama3.1:8b`. To use a different model, pass `MODEL=`:
@@ -57,7 +57,7 @@ The default model is `llama3.1:8b`. To use a different model, pass `MODEL=`:
 make ollama
 ```
 
-#### Run llama server
+### Run llama server
 
 > **Keep this terminal open** – the server needs to keep running.
 > You should see output indicating the server started on `http://localhost:8321`.
@@ -66,7 +66,7 @@ make ollama
 make llama-server
 ```
 
-#### Run the interactive web application
+### Run the interactive web application
 
 > **Keep this terminal open** – the app needs to keep running.
 > You should see output indicating the app started on `http://localhost:8000`.
@@ -76,7 +76,7 @@ cd agents/google/adk
 make run-app           # fails if port is already in use and print steps TO-DO
 ```
 
-#### Interactive CLI
+### Interactive CLI
 
 For terminal-based testing without a browser:
 
@@ -117,9 +117,9 @@ CONTAINER_IMAGE = quay.io/your-username/google-adk-agent:latest
 
   Examples:
 
-    - Quay.io: `quay.io/your-username/google-adk-agent:latest`
-    - Docker Hub: `docker.io/your-username/google-adk-agent:latest`
-    - GHCR: `ghcr.io/your-org/google-adk-agent:latest`
+  - Quay.io: `quay.io/your-username/google-adk-agent:latest`
+  - Docker Hub: `docker.io/your-username/google-adk-agent:latest`
+  - GHCR: `ghcr.io/your-org/google-adk-agent:latest`
 
   > **Note:** OpenShift must be able to pull the container image. Make the image **public**, or configure
   an [image pull secret](https://docs.openshift.com/container-platform/latest/openshift_images/managing_images/using-image-pull-secrets.html)
@@ -308,6 +308,7 @@ TOOLS = [dummy_web_search, my_custom_tool]
 **LiteLLM debug mode**
 
 - To see the actual API requests being made, add to your code:
+
   ```python
   import litellm
   litellm._turn_on_debug()
@@ -315,10 +316,10 @@ TOOLS = [dummy_web_search, my_custom_tool]
 
 ### Additional Resources
 
-- **Google ADK 2.0 Documentation**: https://google.github.io/adk-docs/2.0/
-- **LiteLLM Documentation**: https://docs.litellm.ai/
-- **Llama Stack Documentation**: https://llama-stack.readthedocs.io/
-- **Ollama Documentation**: https://ollama.com/docs
+- **Google ADK 2.0 Documentation**: <https://google.github.io/adk-docs/2.0/>
+- **LiteLLM Documentation**: <https://docs.litellm.ai/>
+- **Llama Stack Documentation**: <https://llama-stack.readthedocs.io/>
+- **Ollama Documentation**: <https://ollama.com/docs>
 
 ---
 

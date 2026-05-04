@@ -16,7 +16,7 @@ mkdir -p agents/<framework>/<agent>/tests/behavioral/fixtures
 
 For example, the LangGraph ReAct agent tests live at:
 
-```
+```text
 agents/langgraph/react_agent/tests/behavioral/
 ├── conftest.py
 ├── test_tool_usage.py

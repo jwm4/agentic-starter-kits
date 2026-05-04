@@ -55,7 +55,7 @@ This runs `uv sync --python 3.12` and creates or updates `.venv`.
 
 You can use placeholders for container images if you only run Python locally:
 
-```
+```ini
 API_KEY=your-key-or-not-needed
 BASE_URL=http://localhost:8321/v1
 MODEL_ID=ollama/llama3.1:8b
@@ -115,7 +115,7 @@ Default ports: **9100** (Crew), **9200** (LangGraph). Do not set `PORT` unless y
 
 ### Playground (LangGraph orchestrator)
 
-With the LangGraph server running (terminal 2), open **http://127.0.0.1:9200/** in a browser. The chat uses **A2A JSON-RPC** on **`POST /`** with **`message/send`**. The server also exposes **`POST /chat/completions`** (OpenAI-style). For local `curl`, use `http://127.0.0.1:9200`.
+With the LangGraph server running (terminal 2), open **<http://127.0.0.1:9200/>** in a browser. The chat uses **A2A JSON-RPC** on **`POST /`** with **`message/send`**. The server also exposes **`POST /chat/completions`** (OpenAI-style). For local `curl`, use `http://127.0.0.1:9200`.
 
 ---
 

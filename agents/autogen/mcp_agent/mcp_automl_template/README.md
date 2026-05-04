@@ -36,7 +36,7 @@ For quick tests or custom pipelines, raw requests are fine (see the notebook). F
 
 ## Directory structure
 
-```
+```text
 mcp_automl_template/
 ├── pyproject.toml      # Project metadata and dependencies
 ├── mcp_server.py       # FastMCP server; registers example tools + tools from YAML
@@ -59,6 +59,7 @@ mcp_automl_template/
 1. **Install dependencies**
 
    With [uv](https://docs.astral.sh/uv/):
+
    ```bash
    uv pip install .
    ```

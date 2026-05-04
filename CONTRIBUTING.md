@@ -14,34 +14,99 @@ Thank you for your interest in contributing. This document gives a short overvie
 
 Before submitting, please read our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to uphold it.
 
+## Development setup
+
+This repository uses [pre-commit](https://pre-commit.com/) hooks to enforce code quality checks before each commit. Set it up once after cloning:
+
+```bash
+uv tool install pre-commit
+pre-commit install --install-hooks
+```
+
+After this, every `git commit` will automatically validate your commit message format (see below).
+
+## Linting and formatting
+
+This project uses [ruff](https://docs.astral.sh/ruff/) for Python linting and formatting, and [markdownlint](https://github.com/DavidAnson/markdownlint) for Markdown linting. Both run as blocking CI checks on all pull requests via the `Code Quality` workflow.
+
+### Python (ruff)
+
+Run locally before pushing:
+
+```bash
+uv tool install ruff==0.15.11
+ruff check .          # lint
+ruff format --check . # format check
+ruff format .         # auto-format
+```
+
+Configuration is in [`ruff.toml`](ruff.toml) at the repo root.
+
+### Markdown (markdownlint)
+
+Run locally before pushing:
+
+```bash
+npx markdownlint-cli2@0.22.1 "**/*.md"          # lint
+npx markdownlint-cli2@0.22.1 --fix "**/*.md"    # auto-fix
+```
+
+Configuration is in [`.markdownlint.jsonc`](.markdownlint.jsonc) (rules) and [`.markdownlint-cli2.yaml`](.markdownlint-cli2.yaml) (ignored paths) at the repo root.
+
 ## Commit message conventions
 
-We encourage [Conventional Commits](https://www.conventionalcommits.org/) so that history and release notes stay clear.
+This repository enforces the [Conventional Commits](https://www.conventionalcommits.org/) specification via a pre-commit hook. Commits that don't follow this format will be blocked locally by the pre-commit hook.
 
-Use one of these prefixes at the start of your commit message:
+> **Tip:** To bypass the hook in rare cases (e.g., merge commits, emergency hotfixes): `git commit --no-verify`
 
-| Prefix    | Meaning |
-| --------- | -------- |
-| **feat:** | A new feature |
-| **fix:**  | A bug fix |
-| **perf:** | A change that improves performance |
-| **chore:**| Maintenance (deps, tooling, config) |
-| **docs:** | Documentation only |
-| **test:** | Adding or updating tests |
+### Format
+
+```
+<type>(optional scope): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Allowed types
+
+| Prefix        | Meaning |
+| ------------- | -------- |
+| **feat:**     | A new feature |
+| **fix:**      | A bug fix |
+| **docs:**     | Documentation only |
+| **chore:**    | Maintenance (deps, tooling, config) |
+| **test:**     | Adding or updating tests |
+| **perf:**     | A change that improves performance |
+| **refactor:** | Code change that neither fixes a bug nor adds a feature |
+| **ci:**       | CI/CD changes |
+| **build:**    | Build system or external dependency changes |
+| **style:**    | Code style (formatting, whitespace — no logic changes) |
+| **revert:**   | Reverts a previous commit |
 
 You can optionally add a scope (e.g. the agent or module name) in parentheses after the type.
 
 ### Examples
 
-```
+```text
 feat: add health check endpoint to autogen mcp_agent
 fix: correct env var name in deployment in langgraph_react_agent
 docs: update README with OpenShift deploy steps
 test: add tests for tool registration
 chore: bump python-dotenv in requirements
+refactor(langgraph): extract tool registration into helper
+ci: add ruff linting workflow
+feat!: change /chat response format
 ```
 
-This is optional but appreciated; maintainers may ask you to reword commits when preparing a release.
+For breaking changes, add `!` after the type/scope (e.g. `feat!:`) or include a `BREAKING CHANGE:` footer:
+
+```
+feat: change /chat response format
+
+BREAKING CHANGE: response field "text" renamed to "content"
+```
 
 ## Automated PR labels
 
@@ -92,6 +157,7 @@ These are the files you need to create or update when adding tracing to your age
 This module exports `enable_tracing()` (and `wrap_func_with_mlflow_trace()` if your framework's autolog doesn't cover everything). It handles health-checking the MLflow server with retry logic, configuring the experiment, enabling the correct autolog for your framework, and gracefully degrading if the server is unreachable. MLflow imports are inside `enable_tracing()` (not at module top) so the module can be imported without MLflow installed — but if `MLFLOW_TRACKING_URI` is set and MLflow is missing, the agent will fail at startup with a clear error.
 
 See existing examples:
+
 - Full autolog (no manual wrapping needed): `agents/langgraph/react_agent/src/react_agent/tracing.py`
 - Partial autolog (tools need manual wrapping): `agents/crewai/websearch_agent/src/crewai_web_search/tracing.py`
 - No framework autolog (tools + agent entry point need manual wrapping): `agents/vanilla_python/openai_responses_agent/src/openai_responses_agent/tracing.py`

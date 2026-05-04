@@ -30,7 +30,7 @@ questions. Use with any OpenAI-compatible API.
 
 ## Local Development
 
-#### Initiating base
+### Initiating base
 
 Here you copy .env.example file into .env
 
@@ -43,7 +43,7 @@ Edit `.env` with your configuration, then:
 
 See [Local Development](../../../docs/local-development.md) for Ollama + Llama Stack setup for local model serving.
 
-#### Pointing to a remotely hosted model
+### Pointing to a remotely hosted model
 
 ```ini
 API_KEY=your-api-key-here
@@ -57,7 +57,7 @@ MODEL_ID=llama-3.1-8b-instruct
 - `BASE_URL` — should end with `/v1`
 - `MODEL_ID` — model identifier available on your endpoint
 
-#### Creating environment
+### Creating environment
 
 Now you will remove old .venv and create new. Next dependencies will be installed.
 
@@ -65,7 +65,7 @@ Now you will remove old .venv and create new. Next dependencies will be installe
 make env
 ```
 
-#### Setup Ollama
+### Setup Ollama
 
 This will install ollama if it is not installed already. Then pull needed models for local work.
 The default model is `llama3.1:8b`. To use a different model, pass `MODEL=`:
@@ -75,7 +75,7 @@ The default model is `llama3.1:8b`. To use a different model, pass `MODEL=`:
 make ollama
 ```
 
-#### Run llama server
+### Run llama server
 
 > **Keep this terminal open** – the server needs to keep running.
 > You should see output indicating the server started on `http://localhost:8321`.
@@ -84,7 +84,7 @@ make ollama
 make llama-server
 ```
 
-#### Run the interactive web application
+### Run the interactive web application
 
 > **Keep this terminal open** – the app needs to keep running.
 > You should see output indicating the app started on `http://localhost:8000`.
@@ -94,7 +94,7 @@ cd agents/crewai/websearch_agent
 make run-app           # fails if port is already in use and print steps TO-DO
 ```
 
-#### Interactive CLI
+### Interactive CLI
 
 For terminal-based testing without a browser:
 
@@ -103,7 +103,7 @@ cd agents/crewai/websearch_agent
 make run-cli
 ```
 
-#### Tracing with a local MLflow server
+### Tracing with a local MLflow server
 
 To enable MLflow tracing, add the following to your `.env`:
 
@@ -123,7 +123,7 @@ uv run --extra tracing mlflow server --port 5000
 
 When `MLFLOW_TRACKING_URI` is set, `make run-app` and `make run-cli` will automatically install the tracing dependency.
 
-##### Configuring the LLM provider for tracing
+#### Configuring the LLM provider for tracing
 
 CrewAI can use different LLM providers. Set `LLM_PROVIDER` to match your provider so MLflow uses the correct autolog
 integration:
@@ -137,7 +137,7 @@ integration:
 | `azure`              | `mlflow.openai.autolog()`    | Azure OpenAI                |
 | `bedrock`            | `mlflow.bedrock.autolog()`   | AWS Bedrock                 |
 
-#### Tracing with an OpenShift MLflow server
+### Tracing with an OpenShift MLflow server
 
 To enable tracing and logging with MLflow on your OpenShift cluster, add the following environment variables to your
 `.env` file:
@@ -198,9 +198,9 @@ CONTAINER_IMAGE = quay.io/your-username/crewai-websearch-agent:latest
 
   Examples:
 
-    - Quay.io: `quay.io/your-username/crewai-websearch-agent:latest`
-    - Docker Hub: `docker.io/your-username/crewai-websearch-agent:latest`
-    - GHCR: `ghcr.io/your-org/crewai-websearch-agent:latest`
+  - Quay.io: `quay.io/your-username/crewai-websearch-agent:latest`
+  - Docker Hub: `docker.io/your-username/crewai-websearch-agent:latest`
+  - GHCR: `ghcr.io/your-org/crewai-websearch-agent:latest`
 
   > **Note:** OpenShift must be able to pull the container image. Make the image **public**, or configure
   an [image pull secret](https://docs.openshift.com/container-platform/latest/openshift_images/managing_images/using-image-pull-secrets.html)

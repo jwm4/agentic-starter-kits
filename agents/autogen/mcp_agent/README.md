@@ -18,7 +18,7 @@ dynamically (e.g. churn prediction, deployment), and answers user questions via 
 
 - Discovers and loads tools from an MCP server at startup
 - Uses `reflect_on_tool_use=True` so the LLM reasons about tool results before responding
-- Supports both streaming (SSE) and non-streaming responses (streaming auto-adjusts when MLflow tracing is enabled; see [Tracing](#tracing) section)
+- Supports both streaming (SSE) and non-streaming responses (streaming auto-adjusts when MLflow tracing is enabled; see [Tracing](#tracing-optional) section)
 - Includes an interactive web playground with an MCP tools panel
 - Extends OpenAI streaming with `mcp.tool_usage` events and `tool_invocations` in JSON responses
 
@@ -166,6 +166,7 @@ MLFLOW_WORKSPACE="default"
 ```
 
 **Notes:**
+
 - `MLFLOW_TRACKING_URI` - URL of your MLflow server. For local development, use `http://localhost:5000`. If using MLflow on an OpenShift cluster, replace `<openshift-dashboard-url>` with your cluster's data science gateway URL.
 - `MLFLOW_TRACKING_TOKEN` - Required for OpenShift only. Your OpenShift authentication token, obtained from the OpenShift console.
 - `MLFLOW_EXPERIMENT_NAME` - A descriptive name for your experiment (e.g., "AutoGen MCP Demo")
@@ -298,9 +299,9 @@ CONTAINER_IMAGE=quay.io/your-username/autogen-mcp-agent:latest
 
   Examples:
 
-    - Quay.io: `quay.io/your-username/autogen-mcp-agent:latest`
-    - Docker Hub: `docker.io/your-username/autogen-mcp-agent:latest`
-    - GHCR: `ghcr.io/your-org/autogen-mcp-agent:latest`
+  - Quay.io: `quay.io/your-username/autogen-mcp-agent:latest`
+  - Docker Hub: `docker.io/your-username/autogen-mcp-agent:latest`
+  - GHCR: `ghcr.io/your-org/autogen-mcp-agent:latest`
 
 #### Preview manifests
 
@@ -335,6 +336,7 @@ make undeploy
 ```
 
 > **Note:** `make undeploy` removes only the agent. To also remove the MCP server:
+>
 > ```bash
 > make undeploy-mcp
 > ```

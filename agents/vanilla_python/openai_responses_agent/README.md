@@ -32,7 +32,7 @@ endpoint that supports the Responses API.
 > **Note:** This agent uses the [OpenAI Responses API](https://platform.openai.com/docs/api-reference/responses/create),
 > which is specific to OpenAI. It does not use Ollama or Llama Stack for local model serving.
 
-#### Initiating base
+### Initiating base
 
 `make init` creates a `.env` file from `.env.example`. Set your environment variables in the `.env` file.
 
@@ -41,11 +41,11 @@ cd agents/vanilla_python/openai_responses_agent
 make init
 ```
 
-#### Tracing (optional)
+### Tracing (optional)
 
 Tracing is optional. If MLflow tracing is required, enable it by uncommenting and setting the following environment variables in the `.env` file.
 
-##### Tracing with a local MLflow server
+#### Tracing with a local MLflow server
 
 ```ini
 MLFLOW_TRACKING_URI="http://localhost:5000"
@@ -63,7 +63,7 @@ uv run --extra tracing mlflow server --port 5000
 
 When `MLFLOW_TRACKING_URI` is set, `make run-app` and `make run-cli` will automatically install the tracing dependency.
 
-##### Tracing with an OpenShift MLflow server
+#### Tracing with an OpenShift MLflow server
 
 To enable tracing and logging with MLflow on your OpenShift cluster, add the following environment variables to your `.env` file:
 
@@ -76,6 +76,7 @@ MLFLOW_WORKSPACE="default"
 ```
 
 **Notes:**
+
 - `MLFLOW_TRACKING_URI` - URL of your MLflow server. For local development, use `http://localhost:5000`. If using MLflow on an OpenShift cluster, replace `<openshift-dashboard-url>` with your cluster's data science gateway URL.
 - `MLFLOW_TRACKING_TOKEN` - Required for OpenShift only. Your OpenShift authentication token, obtained from the OpenShift console.
 - `MLFLOW_EXPERIMENT_NAME` - A descriptive name for your experiment (e.g., "OpenAI Responses Demo")
@@ -88,7 +89,7 @@ MLFLOW_WORKSPACE="default"
 
 - You can control how long the application waits for the MLflow server by setting `MLFLOW_HEALTH_CHECK_TIMEOUT` (in seconds, default: `5`).
 
-#### Creating environment
+### Creating environment
 
 Now you will remove old .venv and create new. Next dependencies will be installed.
 
@@ -96,7 +97,7 @@ Now you will remove old .venv and create new. Next dependencies will be installe
 make env
 ```
 
-#### Run the interactive web application
+### Run the interactive web application
 
 > **Keep this terminal open** – the app needs to keep running.
 > You should see output indicating the app started on `http://localhost:8000`.
@@ -106,7 +107,7 @@ cd agents/vanilla_python/openai_responses_agent
 make run-app           # fails if port is already in use and print steps TO-DO
 ```
 
-#### Interactive CLI
+### Interactive CLI
 
 For terminal-based testing without a browser:
 
@@ -150,9 +151,9 @@ CONTAINER_IMAGE = quay.io/your-username/openai-responses-agent:latest
 
   Examples:
 
-    - Quay.io: `quay.io/your-username/openai-responses-agent:latest`
-    - Docker Hub: `docker.io/your-username/openai-responses-agent:latest`
-    - GHCR: `ghcr.io/your-org/openai-responses-agent:latest`
+  - Quay.io: `quay.io/your-username/openai-responses-agent:latest`
+  - Docker Hub: `docker.io/your-username/openai-responses-agent:latest`
+  - GHCR: `ghcr.io/your-org/openai-responses-agent:latest`
 
   > **Note:** OpenShift must be able to pull the container image. Make the image **public**, or configure
   an [image pull secret](https://docs.openshift.com/container-platform/latest/openshift_images/managing_images/using-image-pull-secrets.html)

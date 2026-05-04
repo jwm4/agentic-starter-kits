@@ -16,7 +16,7 @@ Built with LangGraph and LangChain.
 
 **How it works:**
 
-```
+```text
 User Input → LLM decides tool → Is it sensitive?
                                     ├── No  → Execute tool automatically → Return result
                                     └── Yes → PAUSE (interrupt) → Human approves/rejects
@@ -83,6 +83,7 @@ MLFLOW_WORKSPACE="default"
 ```
 
 **Notes:**
+
 - `MLFLOW_TRACKING_URI` - URL of your MLflow server. For local development, use `http://localhost:5000`. If using MLflow on an OpenShift cluster, replace `<openshift-dashboard-url>` with your cluster's data science gateway URL.
 - `MLFLOW_TRACKING_TOKEN` - Required for OpenShift only. Your OpenShift authentication token, obtained from the OpenShift console.
 - `MLFLOW_EXPERIMENT_NAME` - A descriptive name for your experiment (e.g., "LangGraph HITL Demo")
@@ -181,9 +182,9 @@ CONTAINER_IMAGE = quay.io/your-username/langgraph-hitl-agent:latest
 
   Examples:
 
-    - Quay.io: `quay.io/your-username/langgraph-hitl-agent:latest`
-    - Docker Hub: `docker.io/your-username/langgraph-hitl-agent:latest`
-    - GHCR: `ghcr.io/your-org/langgraph-hitl-agent:latest`
+  - Quay.io: `quay.io/your-username/langgraph-hitl-agent:latest`
+  - Docker Hub: `docker.io/your-username/langgraph-hitl-agent:latest`
+  - GHCR: `ghcr.io/your-org/langgraph-hitl-agent:latest`
 
   > **Note:** OpenShift must be able to pull the container image. Make the image **public**, or configure
   an [image pull secret](https://docs.openshift.com/container-platform/latest/openshift_images/managing_images/using-image-pull-secrets.html)
@@ -440,7 +441,7 @@ This agent combines three key components:
 2. **LangGraph Interrupts**: `interrupt()` pauses execution; `Command(resume=...)` resumes it
 3. **ChatOpenAI**: OpenAI-compatible LLM client (connects to Llama-stack or OpenAI)
 
-```
+```text
 User Input → Agent Node (LLM) → Route Decision
                                    ├── No tools → END
                                    ├── Safe tool → Tool Node → Agent Node (loop)
