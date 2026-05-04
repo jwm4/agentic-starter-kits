@@ -24,7 +24,11 @@ def cluster_auth():
             timeout=15,
             check=True,
         ).stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+    except (
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+        subprocess.TimeoutExpired,
+    ):
         pytest.skip("Not logged into an OpenShift cluster")
 
     if namespace != "ci-testing":

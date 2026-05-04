@@ -70,7 +70,9 @@ def deployed_agent(cluster_auth, agent_dir):
             try:
                 run_make("undeploy", cwd=agent_dir, timeout=120)
             except MakeTargetError:
-                logger.warning("Cleanup failed — manual undeploy may be needed", exc_info=True)
+                logger.warning(
+                    "Cleanup failed — manual undeploy may be needed", exc_info=True
+                )
         env_path.unlink(missing_ok=True)
 
 

@@ -12,16 +12,16 @@ import httpx
 logger = logging.getLogger(__name__)
 
 _REDACT_PATTERNS = [
-    re.compile(r'(API_KEY=)\S+'),
+    re.compile(r"(API_KEY=)\S+"),
     re.compile(r'(apiKey:\s*")[^"]*"'),
     re.compile(r'(--set\s+secrets\.apiKey=")[^"]*"'),
-    re.compile(r'(--set\s+secrets\.apiKey=)\S+'),
+    re.compile(r"(--set\s+secrets\.apiKey=)\S+"),
 ]
 
 
 def _redact(text: str) -> str:
     for pattern in _REDACT_PATTERNS:
-        text = pattern.sub(r'\1***REDACTED***', text)
+        text = pattern.sub(r"\1***REDACTED***", text)
     return text
 
 
@@ -127,7 +127,7 @@ def health_check(
                 last_exc = exc
                 if attempt == retries - 1:
                     break
-                wait = min(backoff * (2 ** attempt), 15.0)
+                wait = min(backoff * (2**attempt), 15.0)
                 logger.info(
                     "Health check attempt %d/%d failed, retrying in %.1fs: %s",
                     attempt + 1,
