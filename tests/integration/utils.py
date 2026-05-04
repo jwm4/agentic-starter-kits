@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -9,6 +10,19 @@ from pathlib import Path
 import httpx
 
 logger = logging.getLogger(__name__)
+
+_REDACT_PATTERNS = [
+    re.compile(r'(API_KEY=)\S+'),
+    re.compile(r'(apiKey:\s*")[^"]*"'),
+    re.compile(r'(--set\s+secrets\.apiKey=")[^"]*"'),
+    re.compile(r'(--set\s+secrets\.apiKey=)\S+'),
+]
+
+
+def _redact(text: str) -> str:
+    for pattern in _REDACT_PATTERNS:
+        text = pattern.sub(r'\1***REDACTED***', text)
+    return text
 
 
 class MakeTargetError(Exception):
@@ -19,8 +33,8 @@ class MakeTargetError(Exception):
         self.stderr = stderr
         super().__init__(
             f"make {target} failed (exit {returncode})\n"
-            f"--- stdout ---\n{stdout}\n"
-            f"--- stderr ---\n{stderr}"
+            f"--- stdout ---\n{_redact(stdout)}\n"
+            f"--- stderr ---\n{_redact(stderr)}"
         )
 
 
