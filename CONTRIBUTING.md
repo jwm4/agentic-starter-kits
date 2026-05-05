@@ -23,7 +23,51 @@ uv tool install pre-commit
 pre-commit install --install-hooks
 ```
 
-After this, every `git commit` will automatically validate your commit message format (see below).
+After this, every `git commit` will automatically run the checks listed in [Pre-commit hooks](#pre-commit-hooks) on your staged files. Commits that fail any check will be blocked.
+
+If you haven't run `pre-commit install --install-hooks`, hooks will **not** run automatically. In that case, you can run all checks manually before committing:
+
+```bash
+pre-commit run --all-files
+```
+
+## Pre-commit hooks
+
+The following hooks run automatically on every commit. They are defined in [`.pre-commit-config.yaml`](.pre-commit-config.yaml).
+
+### Conventional commits
+
+Enforces the [Conventional Commits](https://www.conventionalcommits.org/) format on commit messages (see [Commit message conventions](#commit-message-conventions) below). Runs at the `commit-msg` stage.
+
+### Python linting and formatting (ruff)
+
+Two hooks from [ruff](https://docs.astral.sh/ruff/):
+
+- **ruff** — lints Python files and auto-fixes issues. Rules are defined in [`ruff.toml`](ruff.toml).
+- **ruff-format** — enforces consistent formatting (quotes, indentation, line length).
+
+### Markdown linting (markdownlint)
+
+Lints `.md` files and auto-fixes what it can (e.g., list indentation, code block languages). Rules are defined in [`.markdownlint.jsonc`](.markdownlint.jsonc); ignored paths in [`.markdownlint-cli2.yaml`](.markdownlint-cli2.yaml).
+
+### File-hygiene hooks
+
+General-purpose checks from [pre-commit/pre-commit-hooks](https://github.com/pre-commit/pre-commit-hooks):
+
+| Hook | What it does |
+| ---- | ------------ |
+| `trailing-whitespace` | Removes trailing whitespace from all files |
+| `end-of-file-fixer` | Ensures every file ends with a newline |
+| `check-yaml` | Validates YAML syntax (excludes `charts/` — Helm templates use Go syntax) |
+| `check-json` | Validates JSON syntax |
+| `check-toml` | Validates TOML syntax |
+| `check-merge-conflict` | Detects leftover merge conflict markers |
+| `check-added-large-files` | Blocks files larger than 1 MB |
+| `debug-statements` | Catches leftover `breakpoint()` / `pdb` calls in Python |
+| `check-case-conflict` | Detects filenames that differ only in case |
+| `mixed-line-ending` | Ensures consistent line endings (no mixed LF/CRLF) |
+| `no-commit-to-branch` | Blocks direct commits to `main` |
+| `detect-private-key` | Catches accidentally committed private keys |
 
 ## Linting and formatting
 

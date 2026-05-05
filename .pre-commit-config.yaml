@@ -20,3 +20,41 @@ repos:
           - --subject-min-length=10
           - --subject-max-length=72
           - --allow-breaking
+
+  # Ruff — Python linting and formatting
+  # Rules are defined in ruff.toml at the repo root
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.11
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # Markdownlint — Markdown linting
+  # Rules are defined in .markdownlint.jsonc at the repo root
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.22.1
+    hooks:
+      - id: markdownlint-cli2
+        args: [--fix]
+
+  # Standard file-hygiene hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+        exclude: ^charts/
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: debug-statements
+      - id: check-case-conflict
+      - id: mixed-line-ending
+      - id: no-commit-to-branch
+        args: [--branch=main]
+      - id: detect-private-key
