@@ -58,3 +58,11 @@ repos:
     hooks:
       - id: markdownlint-cli2
         args: [--fix]
+
+  # Actionlint — GitHub Actions workflow validation
+  # Keep version in sync with raven-actions/actionlint in .github/workflows/code-quality.yml
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+        files: ^\.github/workflows/
