@@ -34,9 +34,6 @@ LABEL name="claude-code" \
 # Claude Code version to install (pinned for reproducibility)
 ARG CLAUDE_CODE_VERSION=2.1.123
 
-# Node.js version (major version, installs latest in that series)
-ARG NODE_VERSION=22
-
 # User configuration
 ARG USER_NAME=claude-agent
 ARG USER_UID=1001

@@ -107,6 +107,10 @@ metadata:
     app: claude-code-vertex
 spec:
   replicas: 1
+  # Recreate strategy required for ReadWriteOnce PVC - prevents Multi-Attach errors
+  # during rolling updates (old pod must release PVC before new pod can mount it)
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: claude-code-vertex
@@ -127,6 +131,12 @@ spec:
           command: ["entrypoint.sh"]
           args: ["sleep", "infinity"]  # Keep container running for exec access
           env:
+            # ===========================================
+            # Runtime Environment
+            # ===========================================
+            # HOME must be set for the entrypoint to create ~/.claude/
+            - name: HOME
+              value: "/home/claude-agent"
             # ===========================================
             # Vertex AI Authentication
             # ===========================================
@@ -153,8 +163,11 @@ spec:
             # ===========================================
             - name: MCP_CONFIG_FILE
               value: "/etc/mcp/config.json"
+            # WARNING: Setting SKIP_PERMISSIONS=true disables all Claude permission checks.
+            # This bypasses file-system write confirmations. Only use in fully sandboxed
+            # environments where the container has no access to sensitive host resources.
             - name: SKIP_PERMISSIONS
-              value: "true"  # Safe in sandboxed container
+              value: "true"
           volumeMounts:
             - name: workspace
               mountPath: /workspace

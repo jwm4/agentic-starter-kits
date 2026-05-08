@@ -67,10 +67,20 @@ oc start-build claude-code --from-dir=. --follow
 # Wait for rollout
 oc rollout status deployment/claude-code
 
-# Test (non-interactive)
+# Test using the claude-run wrapper (includes all configured args)
 oc exec deployment/claude-code -- bash -c '
   export HOME=/home/claude-agent
-  claude -p "What is 2+2?"
+  ~/.claude/claude-run -p "What is 2+2?"
+'
+```
+
+**Note**: The `claude-run` wrapper automatically includes all container-configured arguments (permission bypass, MCP config, model selection, etc.). You can also source the environment directly:
+
+```bash
+oc exec deployment/claude-code -- bash -c '
+  export HOME=/home/claude-agent
+  source ~/.claude/env.sh
+  claude $CLAUDE_EXTRA_ARGS -p "What is 2+2?"
 '
 ```
 
@@ -86,11 +96,11 @@ podman run -it --rm \
   claude-code:latest \
   claude
 
-# OpenShift interactive mode
+# OpenShift interactive mode (uses claude-run for proper config)
 oc exec -it deployment/claude-code -- bash -c '
   export HOME=/home/claude-agent
   cd /workspace
-  claude
+  ~/.claude/claude-run
 '
 ```
 
@@ -215,10 +225,20 @@ oc start-build claude-code --from-dir=. --follow
 ```bash
 oc rollout status deployment/claude-code-vertex
 
-# Test (non-interactive)
+# Test using the claude-run wrapper (includes all configured args)
 oc exec deployment/claude-code-vertex -- bash -c '
   export HOME=/home/claude-agent
-  claude -p "What is 2+2?"
+  ~/.claude/claude-run -p "What is 2+2?"
+'
+```
+
+**Note**: The `claude-run` wrapper automatically includes all container-configured arguments (permission bypass, MCP config, model selection, etc.). You can also source the environment directly:
+
+```bash
+oc exec deployment/claude-code-vertex -- bash -c '
+  export HOME=/home/claude-agent
+  source ~/.claude/env.sh
+  claude $CLAUDE_EXTRA_ARGS -p "What is 2+2?"
 '
 ```
 
@@ -238,11 +258,19 @@ podman run -it --rm \
   claude-code:latest \
   claude
 
-# OpenShift interactive mode
+# OpenShift interactive mode (uses claude-run for proper config)
 oc exec -it deployment/claude-code-vertex -- bash -c '
   export HOME=/home/claude-agent
   cd /workspace
-  claude
+  ~/.claude/claude-run
+'
+
+# Alternative: source env.sh directly
+oc exec -it deployment/claude-code-vertex -- bash -c '
+  export HOME=/home/claude-agent
+  cd /workspace
+  source ~/.claude/env.sh
+  claude $CLAUDE_EXTRA_ARGS
 '
 ```
 
@@ -276,16 +304,53 @@ oc exec deployment/claude-code-vertex -- bash -c 'tail -f /home/claude-agent/.cl
 
 ---
 
+## Security Considerations
+
+### SKIP_PERMISSIONS
+
+The deployment manifests set `SKIP_PERMISSIONS=true` by default, which passes `--dangerously-skip-permissions` to Claude Code. This disables all file-system write permission prompts.
+
+**Why it's enabled by default:**
+
+- The container runs as non-root with dropped capabilities and seccomp profiles
+- Claude only has access to the isolated `/workspace` PVC, not host filesystems
+- Permission prompts don't work well in non-interactive `oc exec` scenarios
+
+**When to disable:**
+
+- If you mount sensitive host directories into the container
+- If you're running in a less isolated environment
+- If you want Claude to prompt before file operations
+
+To disable, set `SKIP_PERMISSIONS=false` in the deployment manifest or remove the environment variable entirely.
+
+---
+
 ## Cleanup
+
+### Option A: Anthropic API resources
 
 ```bash
 oc delete deployment claude-code
 oc delete buildconfig claude-code
 oc delete imagestream claude-code
-oc delete secret claude-credentials      # if using Anthropic API
-oc delete secret claude-vertex-credentials  # if using Vertex AI
+oc delete secret claude-credentials
 oc delete configmap claude-mcp-config
 oc delete configmap claude-skills
 oc delete pvc claude-workspace
+oc delete project my-claude-project
+```
+
+### Option B: Vertex AI resources
+
+```bash
+oc delete deployment claude-code-vertex
+oc delete buildconfig claude-code
+oc delete imagestream claude-code
+oc delete secret claude-vertex-credentials
+oc delete configmap claude-vertex-config
+oc delete configmap claude-vertex-mcp-config
+oc delete configmap claude-vertex-skills
+oc delete pvc claude-vertex-workspace
 oc delete project my-claude-project
 ```
