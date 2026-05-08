@@ -33,6 +33,13 @@ queries:
     difficulty: medium
     category: sub
 
+  # --- Multi-tool: add then sub (exercises tool_sequence scorer) ---
+  - query: "First, use the add tool to compute 100 + 200. Then, use the subtract tool to subtract 50 from that result."
+    expected_tools: ["add", "sub"]
+    expected_elements: ["250"]
+    difficulty: medium
+    category: multi_tool
+
   # --- Greeting (no tools) ---
   - query: "Hello"
     expected_tools: []

@@ -22,6 +22,10 @@ queries:
     expected_tools: ["add"]
     expected_elements: ["300"]
 
+  - query: "First, use the add tool to compute 100 + 200. Then, use the subtract tool to subtract 50 from that result."
+    expected_tools: ["add", "sub"]
+    expected_elements: ["250"]
+
   - query: "Hello, how are you today?"
     expected_tools: []
     expected_elements: []
