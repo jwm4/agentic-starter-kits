@@ -51,7 +51,9 @@ spec:
       app.kubernetes.io/instance: llamastack-distribution
   ingress:
   - from:
-    - namespaceSelector: {}
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: openshift-ingress
     ports:
     - port: 8321
       protocol: TCP

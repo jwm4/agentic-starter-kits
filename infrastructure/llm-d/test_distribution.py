@@ -192,7 +192,7 @@ def print_distribution(before, after):
 
     before_map = {s["pod"]: s for s in before}
 
-    print(f"\n  This run (delta):")
+    print("\n  This run (delta):")
     header = f"  {'Node':<16} {'Requests':>10} {'Prompt Tok':>12} {'Gen Tok':>10} {'Cache Hit':>10}"
     print(header)
     print(f"  {'-'*16} {'-'*10} {'-'*12} {'-'*10} {'-'*10}")
@@ -220,7 +220,7 @@ def print_distribution(before, after):
     print(f"  {'-'*16} {'-'*10} {'-'*12} {'-'*10} {'-'*10}")
     print(f"  {'TOTAL':<16} {total_reqs:>10} {total_prompt:>12} {total_gen:>10}")
 
-    print(f"\n  Cumulative totals (since pod start):")
+    print("\n  Cumulative totals (since pod start):")
     header = f"  {'Node':<16} {'Requests':>10} {'Prompt Tok':>12} {'Gen Tok':>10}"
     print(header)
     print(f"  {'-'*16} {'-'*10} {'-'*12} {'-'*10}")
@@ -295,7 +295,7 @@ async def send_request(session, url, model, prompt, max_tokens=20, request_id=0)
 
 async def test_concurrent_load(url, model, num_requests=30, concurrency=6):
     print(f"\n{'='*60}")
-    print(f"TEST 1: Concurrent Load Distribution")
+    print("TEST 1: Concurrent Load Distribution")
     print(f"Sending {num_requests} requests with concurrency={concurrency}")
     print(f"{'='*60}")
 
@@ -330,7 +330,7 @@ async def test_concurrent_load(url, model, num_requests=30, concurrency=6):
     successful = [r for r in results if r["error"] is None and r["status"] == 200]
     failed = [r for r in results if r["error"] is not None or r["status"] != 200]
 
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  Successful: {len(successful)}/{num_requests}")
     print(f"  Failed: {len(failed)}")
     print(f"  Total time: {total_time:.2f}s")
@@ -340,18 +340,18 @@ async def test_concurrent_load(url, model, num_requests=30, concurrency=6):
         latencies = [r["elapsed"] for r in successful]
         latencies.sort()
         total_tokens = sum(r["total_tokens"] for r in successful)
-        print(f"\nLatency (seconds):")
+        print("\nLatency (seconds):")
         print(f"  Min:    {min(latencies):.3f}")
         print(f"  Median: {latencies[len(latencies)//2]:.3f}")
         print(f"  P95:    {latencies[int(len(latencies)*0.95)]:.3f}")
         print(f"  Max:    {max(latencies):.3f}")
         print(f"  Avg:    {sum(latencies)/len(latencies):.3f}")
-        print(f"\nTokens:")
+        print("\nTokens:")
         print(f"  Total: {total_tokens}")
         print(f"  Tokens/sec: {total_tokens/total_time:.1f}")
 
     if failed:
-        print(f"\nErrors:")
+        print("\nErrors:")
         for r in failed[:3]:
             err = r["error"] or f"HTTP {r['status']}"
             print(f"  Request {r['request_id']}: {err}")
@@ -361,7 +361,7 @@ async def test_concurrent_load(url, model, num_requests=30, concurrency=6):
 
 async def test_prefix_cache_routing(url, model, num_rounds=3, prompts_per_round=6):
     print(f"\n{'='*60}")
-    print(f"TEST 2: Prefix Cache Routing")
+    print("TEST 2: Prefix Cache Routing")
     print(f"Sending same prompts {num_rounds} rounds to test cache-aware routing")
     print(f"{'='*60}")
 
@@ -445,7 +445,7 @@ async def test_sustained_throughput(url, model, duration_seconds=30, concurrency
     successful = [r for r in results if r["error"] is None and r["status"] == 200]
     total_tokens = sum(r["total_tokens"] for r in successful)
 
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  Duration: {total_time:.1f}s")
     print(f"  Total requests: {len(results)}")
     print(f"  Successful: {len(successful)}")
@@ -455,7 +455,7 @@ async def test_sustained_throughput(url, model, duration_seconds=30, concurrency
 
     if successful:
         latencies = sorted(r["elapsed"] for r in successful)
-        print(f"\nLatency (seconds):")
+        print("\nLatency (seconds):")
         print(f"  Min:    {min(latencies):.3f}")
         print(f"  Median: {latencies[len(latencies)//2]:.3f}")
         print(f"  P95:    {latencies[int(len(latencies)*0.95)]:.3f}")

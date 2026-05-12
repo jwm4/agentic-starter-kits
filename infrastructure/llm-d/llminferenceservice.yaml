@@ -24,6 +24,9 @@ metadata:
   annotations:
     opendatahub.io/model-type: generative
     openshift.io/display-name: <SERVICE_NAME>
+    # Auth is disabled because maas-default-gateway has no OAuth proxy.
+    # For production, consider enabling auth and using a ServiceAccount token
+    # or restricting access via NetworkPolicies.
     security.opendatahub.io/enable-auth: 'false'
     prometheus.io/path: /metrics
     prometheus.io/port: "8000"
@@ -70,6 +73,8 @@ spec:
             cpu: '2'
             memory: 8Gi
             nvidia.com/gpu: "1"
+        # KServe automatically injects TLS certs (--ssl-certfile, --ssl-keyfile)
+        # into the vLLM container at startup, so vLLM serves HTTPS on port 8000.
         livenessProbe:
           httpGet:
             path: /health
