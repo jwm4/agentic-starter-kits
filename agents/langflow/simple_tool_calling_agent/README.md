@@ -97,6 +97,16 @@ make llama-server
 make run
 ```
 
+> **macOS: If `make run` fails with `statfs ... init-db.sh: operation not permitted`:** your Podman machine needs
+> rootful mode. This happens on some configurations where the VM cannot bind-mount host files in rootless mode. Run:
+>
+> ```bash
+> podman machine stop
+> podman machine set --rootful
+> podman machine start
+> make run
+> ```
+
 ### Import the flow
 
 1. Open <http://localhost:7860>
