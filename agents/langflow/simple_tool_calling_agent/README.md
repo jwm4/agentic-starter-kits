@@ -97,7 +97,7 @@ make llama-server
 make run
 ```
 
-> **macOS: If `make run` fails with `statfs ... init-db.sh: operation not permitted`:** your Podman machine needs
+> **macOS: If `make run` fails with `statfs ... init-db.sh: operation not permitted`:** your Podman machine may need
 > rootful mode. This happens on some configurations where the VM cannot bind-mount host files in rootless mode. Run:
 >
 > ```bash
@@ -106,6 +106,9 @@ make run
 > podman machine start
 > make run
 > ```
+>
+> Note: rootful mode reduces container isolation. If you want to revert after you're done working with this agent,
+> run `podman machine set --rootful=false` — but you will need to set rootful mode again before running `make run`.
 
 ### Import the flow
 
