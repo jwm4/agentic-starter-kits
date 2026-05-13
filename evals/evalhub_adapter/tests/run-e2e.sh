@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# End-to-end EvalHub walkthrough — runs both agent profiles.
+# End-to-end EvalHub walkthrough — runs all three agent profiles.
 # Preflight covers README step 1 (prerequisites); steps 2-7 follow the README.
 #
 # Cluster: agentic-mcp (ROSA HCP)
@@ -40,7 +40,7 @@ cleanup() {
 trap cleanup EXIT
 
 OC_TOKEN=$(oc whoami -t 2>/dev/null || true)
-MLFLOW_INSECURE_TLS="${MLFLOW_INSECURE_TLS:-false}"
+MLFLOW_INSECURE_TLS="${MLFLOW_INSECURE_TLS:-true}"
 
 PREFLIGHT_PASS=0
 PREFLIGHT_WARN=0
@@ -101,6 +101,7 @@ REQUIRED_FILES=(
   "evals/evalhub_adapter/adapter.py"
   "agents/langgraph/react_agent/evalhub/tool_use.yaml"
   "agents/vanilla_python/openai_responses_agent/evalhub/tool_use.yaml"
+  "agents/autogen/mcp_agent/evalhub/tool_use.yaml"
 )
 for f in "${REQUIRED_FILES[@]}"; do
   if [[ -f "${REPO_ROOT}/${f}" ]]; then
@@ -163,6 +164,18 @@ else
   preflight_ok "OpenAI agent route (override): ${OPENAI_AGENT_ROUTE}"
 fi
 
+if [[ -z "${AUTOGEN_MCP_AGENT_ROUTE:-}" ]]; then
+  AUTOGEN_MCP_AGENT_ROUTE=$(get_route "autogen-mcp-agent" || true)
+  [[ -z "${AUTOGEN_MCP_AGENT_ROUTE}" ]] && AUTOGEN_MCP_AGENT_ROUTE=$(get_route_contains "autogen")
+  if [[ -n "${AUTOGEN_MCP_AGENT_ROUTE}" ]]; then
+    preflight_ok "AutoGen MCP agent route: ${AUTOGEN_MCP_AGENT_ROUTE}"
+  else
+    preflight_fail "Could not discover autogen_mcp_agent route. Set AUTOGEN_MCP_AGENT_ROUTE manually."
+  fi
+else
+  preflight_ok "AutoGen MCP agent route (override): ${AUTOGEN_MCP_AGENT_ROUTE}"
+fi
+
 if [[ -z "${MLFLOW_TRACKING_URI:-}" ]]; then
   MLFLOW_TRACKING_URI=$(oc get deployment -n "${OC_NAMESPACE}" -o jsonpath='{.items[*].spec.template.spec.containers[0].env[?(@.name=="MLFLOW_TRACKING_URI")].value}' 2>/dev/null | awk '{print $1}' || true)
   if [[ -z "${MLFLOW_TRACKING_URI}" ]]; then
@@ -187,12 +200,11 @@ else
   preflight_ok "MLflow agent experiment: ${MLFLOW_AGENT_EXPERIMENT}"
 fi
 
-# Run-logging experiment — unique per e2e run so results are isolated
-RUN_ID=$(python3 -c "import uuid; print(uuid.uuid4().hex[:5])")
+# Use the agent experiment for eval metrics so traces and runs are together
 if [[ -z "${MLFLOW_EXPERIMENT}" ]]; then
-  MLFLOW_EXPERIMENT="${MLFLOW_AGENT_EXPERIMENT}-eval-${RUN_ID}"
+  MLFLOW_EXPERIMENT="${MLFLOW_AGENT_EXPERIMENT}"
 fi
-preflight_ok "MLflow run experiment: ${MLFLOW_EXPERIMENT}"
+preflight_ok "MLflow experiment: ${MLFLOW_EXPERIMENT}"
 echo ""
 
 # -- Service health checks -------------------------------------------------
@@ -214,6 +226,14 @@ if [[ -n "${OPENAI_AGENT_ROUTE:-}" ]]; then
   fi
 fi
 
+if [[ -n "${AUTOGEN_MCP_AGENT_ROUTE:-}" ]]; then
+  if curl -sf --max-time 10 "https://${AUTOGEN_MCP_AGENT_ROUTE}/health" > /dev/null 2>&1; then
+    preflight_ok "autogen_mcp_agent /health responded"
+  else
+    preflight_warn "autogen_mcp_agent /health not reachable (https://${AUTOGEN_MCP_AGENT_ROUTE}/health)"
+  fi
+fi
+
 if [[ -n "${EVALHUB_ROUTE:-}" ]]; then
   if curl -sf --max-time 10 "https://${EVALHUB_ROUTE}/api/v1/health" > /dev/null 2>&1; then
     preflight_ok "EvalHub API healthy"
@@ -229,6 +249,30 @@ if [[ -n "${MLFLOW_TRACKING_URI:-}" ]]; then
   else
     preflight_warn "MLflow not reachable (${MLFLOW_TRACKING_URI})"
   fi
+fi
+echo ""
+
+# -- MLflow token resolution ------------------------------------------------
+echo "  --- MLflow token ---"
+MLFLOW_TOKEN="${MLFLOW_TOKEN:-${OC_TOKEN}}"
+if [[ -n "${MLFLOW_TOKEN}" ]]; then
+  preflight_ok "Using current OC session token for MLflow auth"
+else
+  MLFLOW_TOKEN_SECRET="${MLFLOW_TOKEN_SECRET:-langgraph-react-agent-secret}"
+  MLFLOW_TOKEN=$(oc get secret -n "${OC_NAMESPACE}" "${MLFLOW_TOKEN_SECRET}" \
+    -o jsonpath='{.data.mlflow-tracking-token}' 2>/dev/null | base64 -d 2>/dev/null || true)
+  if [[ -n "${MLFLOW_TOKEN}" ]]; then
+    preflight_ok "Using token from secret ${MLFLOW_TOKEN_SECRET}"
+  fi
+fi
+
+if [[ -z "${MLFLOW_TOKEN}" ]]; then
+  preflight_fail "Could not resolve MLFLOW_TRACKING_TOKEN (tried oc whoami -t and agent secret)."
+fi
+
+CURL_TLS_FLAG=""
+if [[ "${MLFLOW_INSECURE_TLS}" == "true" || "${EVALHUB_ALLOW_INSECURE_TLS:-}" == "true" ]]; then
+  CURL_TLS_FLAG="-k"
 fi
 echo ""
 
@@ -249,12 +293,13 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== Configuration ==="
 
-echo "  Namespace:    ${OC_NAMESPACE}"
-echo "  EvalHub:      ${EVALHUB_ROUTE}"
-echo "  React agent:  ${REACT_AGENT_ROUTE}"
-echo "  OpenAI agent: ${OPENAI_AGENT_ROUTE}"
-echo "  MLflow:       ${MLFLOW_TRACKING_URI}"
-echo "  Experiment:   ${MLFLOW_EXPERIMENT}"
+echo "  Namespace:        ${OC_NAMESPACE}"
+echo "  EvalHub:          ${EVALHUB_ROUTE}"
+echo "  React agent:      ${REACT_AGENT_ROUTE}"
+echo "  OpenAI agent:     ${OPENAI_AGENT_ROUTE}"
+echo "  AutoGen MCP agent: ${AUTOGEN_MCP_AGENT_ROUTE}"
+echo "  MLflow:           ${MLFLOW_TRACKING_URI}"
+echo "  Experiment:       ${MLFLOW_EXPERIMENT}"
 
 # ---------------------------------------------------------------------------
 # Step 2 — Build and push the adapter image
@@ -263,7 +308,7 @@ echo ""
 echo "=== Step 2: Building and pushing adapter image ==="
 
 cd "${REPO_ROOT}"
-IMAGE_TAG=$(git rev-parse --short HEAD)
+IMAGE_TAG="$(git rev-parse --short HEAD)-$(date +%s)"
 ADAPTER_IMAGE="quay.io/${REGISTRY_USER}/evalhub-agentic-adapter:${IMAGE_TAG}"
 
 echo "  Image: ${ADAPTER_IMAGE}"
@@ -290,46 +335,8 @@ evalhub health
 echo ""
 echo "=== Step 4: Registering provider ==="
 
-# Resolve MLflow token for the adapter pod.
-# EvalHub runtime Env does NOT support secretKeyRef — tokens must be literal values.
-# Prefer the current OC session token (always fresh) over the agent secret
-# (which may hold an expired token from a previous session).
-MLFLOW_TOKEN="${MLFLOW_TOKEN:-${OC_TOKEN}}"
-if [[ -n "${MLFLOW_TOKEN}" ]]; then
-  echo "  Using current OC session token for MLflow auth"
-else
-  MLFLOW_TOKEN_SECRET="${MLFLOW_TOKEN_SECRET:-langgraph-react-agent-secret}"
-  MLFLOW_TOKEN=$(oc get secret -n "${OC_NAMESPACE}" "${MLFLOW_TOKEN_SECRET}" \
-    -o jsonpath='{.data.mlflow-tracking-token}' 2>/dev/null | base64 -d 2>/dev/null || true)
-  if [[ -n "${MLFLOW_TOKEN}" ]]; then
-    echo "  Using token from secret ${MLFLOW_TOKEN_SECRET}"
-  fi
-fi
-
-if [[ -z "${MLFLOW_TOKEN}" ]]; then
-  preflight_fail "Could not resolve MLFLOW_TRACKING_TOKEN (tried oc whoami -t and agent secret)."
-  exit 1
-fi
-
 # JSON-escape the token to prevent injection via special characters
 MLFLOW_TOKEN_JSON=$(python3 -c "import json,sys; sys.stdout.write(json.dumps(sys.argv[1]))" "${MLFLOW_TOKEN}")
-
-# Validate token against MLflow before registering
-CURL_TLS_FLAG=""
-if [[ "${MLFLOW_INSECURE_TLS}" == "true" || "${EVALHUB_ALLOW_INSECURE_TLS:-}" == "true" ]]; then
-  CURL_TLS_FLAG="-k"
-fi
-MLFLOW_AUTH_CHECK=$(curl -s ${CURL_TLS_FLAG} -o /dev/null -w "%{http_code}" \
-  -H "Authorization: Bearer ${MLFLOW_TOKEN}" \
-  "${MLFLOW_TRACKING_URI}/api/2.0/mlflow/experiments/list?max_results=1" 2>/dev/null || true)
-if [[ "${MLFLOW_AUTH_CHECK}" == "401" || "${MLFLOW_AUTH_CHECK}" == "403" ]]; then
-  preflight_warn "MLflow token appears invalid (HTTP ${MLFLOW_AUTH_CHECK})."
-  echo "         Refresh the token: export MLFLOW_TOKEN=\$(oc whoami -t) && re-run"
-elif [[ "${MLFLOW_AUTH_CHECK}" != "200" ]]; then
-  preflight_warn "MLflow reachability check failed (HTTP ${MLFLOW_AUTH_CHECK})."
-  echo "         If mlflow_run_id is null in results, refresh the token:"
-  echo "         export MLFLOW_TOKEN=\$(oc whoami -t) && re-run"
-fi
 
 cat > "${WORK_DIR}/provider-agentic.json" <<EOF
 {
@@ -365,6 +372,8 @@ cat > "${WORK_DIR}/provider-agentic.json" <<EOF
         {"name": "MLFLOW_TRACKING_TOKEN", "value": ${MLFLOW_TOKEN_JSON}},
         {"name": "MLFLOW_TRACKING_INSECURE_TLS", "value": "${MLFLOW_INSECURE_TLS}"},
         {"name": "MLFLOW_WORKSPACE", "value": "${OC_NAMESPACE}"},
+        {"name": "MLFLOW_TRACE_WAIT_SECONDS", "value": "5"},
+        {"name": "MLFLOW_TRACE_MAX_RETRIES", "value": "6"},
         {"name": "EVALHUB_ALLOW_LOCALHOST", "value": "true"}
       ]
     }
@@ -423,7 +432,6 @@ benchmarks:
       fixtures_path: fixtures/langgraph_react
       mlflow_tracking_uri: ${MLFLOW_TRACKING_URI}
       mlflow_experiment_name: ${MLFLOW_EXPERIMENT}
-      mlflow_trace_experiment_name: ${MLFLOW_AGENT_EXPERIMENT}
 EOF
 
 cat > "${WORK_DIR}/eval-openai-responses-agent.yaml" <<EOF
@@ -444,11 +452,31 @@ benchmarks:
       fixtures_path: fixtures/vanilla_python
       mlflow_tracking_uri: ${MLFLOW_TRACKING_URI}
       mlflow_experiment_name: ${MLFLOW_EXPERIMENT}
-      mlflow_trace_experiment_name: ${MLFLOW_AGENT_EXPERIMENT}
+EOF
+
+cat > "${WORK_DIR}/eval-autogen-mcp-agent.yaml" <<EOF
+name: agentic-tool-use-autogen-mcp-agent
+description: EvalHub orchestration run for AutoGen MCP agent
+model:
+  name: autogen-mcp-agent
+  url: https://${AUTOGEN_MCP_AGENT_ROUTE}
+benchmarks:
+  - id: agentic-tool-use
+    provider_id: ${PROVIDER_ID}
+    parameters:
+      known_tools: ["add", "sub"]
+      forbidden_actions: ["shell execution"]
+      max_latency_seconds: 15.0
+      timeout_seconds: 60.0
+      verify_ssl: true
+      fixtures_path: fixtures/autogen_mcp
+      mlflow_tracking_uri: ${MLFLOW_TRACKING_URI}
+      mlflow_experiment_name: ${MLFLOW_EXPERIMENT}
 EOF
 
 echo "  Created: eval-react-agent.yaml"
 echo "  Created: eval-openai-responses-agent.yaml"
+echo "  Created: eval-autogen-mcp-agent.yaml"
 
 # ---------------------------------------------------------------------------
 # Step 6 — Submit jobs and wait
@@ -471,6 +499,19 @@ echo "=== Step 6: Submitting openai_responses_agent eval ==="
 OPENAI_OUTPUT=$(evalhub eval run --config "${WORK_DIR}/eval-openai-responses-agent.yaml" --wait --poll-interval 5 2>&1)
 echo "${OPENAI_OUTPUT}"
 OPENAI_JOB_ID=$(echo "${OPENAI_OUTPUT}" | python3 -c "
+import sys, re
+for line in sys.stdin:
+    m = re.search(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', line)
+    if m:
+        print(m.group())
+        break
+" 2>/dev/null || true)
+
+echo ""
+echo "=== Step 6: Submitting autogen_mcp_agent eval ==="
+AUTOGEN_OUTPUT=$(evalhub eval run --config "${WORK_DIR}/eval-autogen-mcp-agent.yaml" --wait --poll-interval 5 2>&1)
+echo "${AUTOGEN_OUTPUT}"
+AUTOGEN_JOB_ID=$(echo "${AUTOGEN_OUTPUT}" | python3 -c "
 import sys, re
 for line in sys.stdin:
     m = re.search(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', line)
@@ -511,14 +552,20 @@ except: print('')
 " 2>/dev/null || true)
 
   if [[ -n "${run_id}" ]]; then
-    local encoded_experiment experiment_id
-    encoded_experiment=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "${MLFLOW_EXPERIMENT}")
-    experiment_id=$(curl -sf --max-time 5 \
-      ${CURL_TLS_FLAG} \
-      -H "Authorization: Bearer ${MLFLOW_TOKEN}" \
-      "${MLFLOW_TRACKING_URI}/api/2.0/mlflow/experiments/get-by-name?experiment_name=${encoded_experiment}" \
-      | python3 -c "import sys,json; print(json.load(sys.stdin)['experiment']['experiment_id'])" \
-      2>/dev/null || echo "${encoded_experiment}")
+    local experiment_id
+    experiment_id=$(python3 -c "
+import os, sys
+os.environ.setdefault('MLFLOW_TRACKING_URI', '${MLFLOW_TRACKING_URI}')
+os.environ.setdefault('MLFLOW_TRACKING_TOKEN', '${MLFLOW_TOKEN}')
+os.environ.setdefault('MLFLOW_TRACKING_INSECURE_TLS', 'true')
+os.environ.setdefault('MLFLOW_WORKSPACE', '${OC_NAMESPACE}')
+import mlflow
+exp = mlflow.MlflowClient().get_experiment_by_name('${MLFLOW_EXPERIMENT}')
+print(exp.experiment_id if exp else '')
+" 2>/dev/null || true)
+    if [[ -z "${experiment_id}" ]]; then
+      experiment_id=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "${MLFLOW_EXPERIMENT}")
+    fi
     echo ""
     echo "  MLflow run: ${MLFLOW_TRACKING_URI}/#/experiments/${experiment_id}/runs/${run_id}?workspace=${OC_NAMESPACE}"
   else
@@ -536,6 +583,8 @@ echo ""
 print_results "react_agent" "${REACT_JOB_ID:-}"
 echo ""
 print_results "openai_responses_agent" "${OPENAI_JOB_ID:-}"
+echo ""
+print_results "autogen_mcp_agent" "${AUTOGEN_JOB_ID:-}"
 
 # ---------------------------------------------------------------------------
 # Cleanup

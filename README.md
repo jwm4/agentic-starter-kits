@@ -131,6 +131,7 @@ Tests require a running agent. Set the target URL via environment variables:
 | `AGENT_URL` | Cross-agent tests (api_contract, adversarial) |
 | `REACT_AGENT_URL` | LangGraph ReAct agent tests |
 | `VANILLA_PYTHON_AGENT_URL` | Vanilla Python agent tests |
+| `AUTOGEN_MCP_AGENT_URL` | AutoGen MCP agent tests |
 
 ```bash
 uv pip install -e ".[test]"
