@@ -19,8 +19,15 @@ llm-d is a **routing and orchestration layer**, not a model-sharding tool. Each 
 | **NFD Operator** | Node Feature Discovery — detects GPU hardware. Create a `NodeFeatureDiscovery` instance after installing. |
 | **NVIDIA GPU Operator** | Installs drivers and device plugins. Create a `ClusterPolicy` after installing. |
 | **Red Hat Connectivity Link** | Provides Kuadrant/Authorino for auth — required by RHOAI 3.4 MaaS. Install from OperatorHub. |
+| **Authorino TLS configured** | Authorino must have TLS enabled with a valid certificate. See [RHOAI documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4). |
+| **PostgreSQL database** | MaaS controller requires a `maas-db-config` secret in `redhat-ods-applications` with a `DB_CONNECTION_URL` key pointing to a PostgreSQL instance. See [RHOAI documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4). |
+| **User Workload Monitoring** | Must be enabled on the cluster for MaaS metrics. See [OpenShift monitoring documentation](https://docs.openshift.com/container-platform/latest/observability/monitoring/enabling-monitoring-for-user-defined-projects.html). |
 | **Models-as-a-Service enabled** | Must be enabled in the DataScienceCluster (see below) |
 | **Red Hat registry pull secret** | Access to `registry.redhat.io` for vLLM images |
+
+> **Note:** The MaaS controller will fail to start if Authorino TLS, the PostgreSQL
+> database secret, or User Workload Monitoring are not configured. Check the
+> `maas-controller` pod logs for specific error messages if provisioning fails.
 
 ### Enable Models-as-a-Service
 
@@ -47,6 +54,17 @@ The following values are specific to your environment. Replace all `<PLACEHOLDER
 | `<VLLM_IMAGE>` | vLLM container image — get the latest digest from the [Red Hat Ecosystem Catalog](https://catalog.redhat.com/en/software/containers/rhaiis/vllm-cuda-rhel9) | `registry.redhat.io/rhaiis/vllm-cuda-rhel9@sha256:...` |
 | `<GATEWAY_HOST>` | The maas-default-gateway external hostname (auto-assigned ELB or manually configured) | `a1b2c3.us-east-2.elb.amazonaws.com` |
 | `<LLAMASTACK_ROUTE>` | Llama Stack external route hostname (if using Llama Stack) | `llamastack-route-redhat-ods-applications.apps.example.com` |
+
+## Recommended Models
+
+Choose a model that fits entirely on a single GPU — llm-d does not shard models across GPUs. Each replica loads the full model.
+
+| Model | Size | Min GPU VRAM | Notes |
+|-------|------|-------------|-------|
+| `openai/gpt-oss-20b` | ~20B params | ~16 GB (quantized) | Tested with this guide on L4 (23GB) nodes |
+| `meta-llama/Llama-3.1-8B-Instruct` | 8B params | ~8 GB (FP8) | Smaller model, works on most GPU types |
+
+Set `<MODEL_URI>` to `hf://<model_name>` (e.g., `hf://openai/gpt-oss-20b`) and `<MODEL_NAME>` to the model identifier used in API requests (e.g., `openai/gpt-oss-20b`).
 
 ## Step 1: Create GPU Node Pool
 
