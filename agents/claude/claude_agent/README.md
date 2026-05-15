@@ -2,6 +2,10 @@
 
 A step-by-step guide to build, test, and deploy the Claude Code container image.
 
+## Licensing Notice
+
+**Do not redistribute built container images.** The Containerfile installs Claude Code at build time via Anthropic's native installer. The resulting image contains Anthropic's proprietary binary, which is subject to their [commercial terms](https://code.claude.com/docs/en/legal-and-compliance) ("All rights reserved"). Building the image yourself for internal use is permitted, but redistributing the built image (e.g., pushing to a public registry) is not authorized.
+
 ## Prerequisites
 
 - `podman` installed locally
@@ -28,6 +32,9 @@ A step-by-step guide to build, test, and deploy the Claude Code container image.
 ```bash
 # Build
 podman build -t claude-code:latest -f Containerfile .
+
+# Build with a specific Claude Code version
+podman build --build-arg CLAUDE_CODE_VERSION=2.1.123 -t claude-code:2.1.123 -f Containerfile .
 
 # Test (non-interactive)
 podman run --rm \
@@ -176,6 +183,9 @@ gcloud iam service-accounts keys create ~/claude-vertex-key.json \
 ```bash
 # Build
 podman build -t claude-code:latest -f Containerfile .
+
+# Build with a specific Claude Code version
+podman build --build-arg CLAUDE_CODE_VERSION=2.1.123 -t claude-code:2.1.123 -f Containerfile .
 
 # Test (non-interactive)
 podman run --rm \

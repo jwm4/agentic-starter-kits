@@ -6,7 +6,7 @@
 #
 # Features:
 # - UBI 10 minimal base (RHEL-compatible, supported)
-# - Claude Code installed via npm (version-pinned)
+# - Claude Code installed via native installer (version-pinned)
 # - Non-root user compatible with restricted-v2 SCC
 # - Configurable API endpoint (Anthropic, vLLM, OGX)
 # - Skills injectable at runtime via ConfigMap/PVC mount
@@ -43,15 +43,11 @@ ARG USER_GID=0
 # Install System Dependencies
 # =============================================================================
 
-# Install Node.js and minimal utilities
-# - nodejs: Required for Claude Code (npm package)
-# - npm: Package manager for installing Claude Code
+# Install minimal utilities
 # - git: Version control (agent may need to clone repos)
-# - curl: HTTP client (agent may need to fetch resources)
+# - curl: HTTP client (agent may need to fetch resources, also used by installer)
 # - jq: JSON processor (useful for scripting)
 RUN microdnf install -y --nodocs \
-        nodejs \
-        npm \
         git \
         curl \
         jq \
@@ -67,17 +63,6 @@ RUN microdnf install -y --nodocs \
 # OpenShift runs containers with a random UID that is a member of GID 0.
 # Directories below use chmod 775 so GID 0 members have write access.
 RUN useradd -u ${USER_UID} -g ${USER_GID} -d /home/${USER_NAME} -m -s /bin/bash ${USER_NAME}
-
-# =============================================================================
-# Install Claude Code
-# =============================================================================
-
-# Install Claude Code globally with pinned version
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
-    && npm cache clean --force
-
-# Verify installation
-RUN claude --version
 
 # =============================================================================
 # Create Directory Structure
@@ -108,6 +93,27 @@ RUN mkdir -p /home/${USER_NAME}/.claude \
 # Ensure home directory has correct permissions for OpenShift random UID
 RUN chown -R ${USER_UID}:${USER_GID} /home/${USER_NAME} \
     && chmod -R 775 /home/${USER_NAME}
+
+# =============================================================================
+# Install Claude Code (as non-root user)
+# =============================================================================
+
+# Switch to non-root user for installation
+# The native installer writes to $HOME/.claude/local/
+USER ${USER_UID}
+
+# Install Claude Code via native installer with pinned version
+# Version pinning: pass version as argument to install.sh
+RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "${CLAUDE_CODE_VERSION}"
+
+# Add Claude to PATH (native installer puts it in ~/.local/bin)
+ENV PATH="/home/claude-agent/.local/bin:${PATH}"
+
+# Verify installation
+RUN claude --version
+
+# Switch back to root for remaining setup
+USER 0
 
 # =============================================================================
 # Copy Entrypoint
