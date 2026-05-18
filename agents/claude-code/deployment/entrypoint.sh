@@ -250,13 +250,13 @@ main() {
     # If first argument is "claude", run it with our extra args
     if [[ "$1" == "claude" ]]; then
         shift
-        log_info "Running: claude ${CLAUDE_EXTRA_ARGS} $*"
+        log_info "Running: claude ${CLAUDE_EXTRA_ARGS}"
         # shellcheck disable=SC2086
         exec claude ${CLAUDE_EXTRA_ARGS} "$@"
     fi
 
     # Otherwise, run the command as-is (allows running bash, sh, etc.)
-    log_info "Running: $*"
+    log_info "Running custom command: $1"
     exec "$@"
 }
 

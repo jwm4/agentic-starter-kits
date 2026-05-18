@@ -212,20 +212,3 @@ spec:
         - name: gcp-credentials
           secret:
             secretName: claude-vertex-credentials
-
----
-# Service (optional, for future gateway integration)
-apiVersion: v1
-kind: Service
-metadata:
-  name: claude-code-vertex
-  labels:
-    app: claude-code-vertex
-spec:
-  selector:
-    app: claude-code-vertex
-  ports:
-    - name: http
-      port: 8080
-      targetPort: 8080
-  type: ClusterIP

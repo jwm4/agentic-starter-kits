@@ -107,7 +107,7 @@ USER ${USER_UID}
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "${CLAUDE_CODE_VERSION}"
 
 # Add Claude to PATH (native installer puts it in ~/.local/bin)
-ENV PATH="/home/claude-agent/.local/bin:${PATH}"
+ENV PATH="/home/${USER_NAME}/.local/bin:${PATH}"
 
 # Verify installation
 RUN claude --version

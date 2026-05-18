@@ -167,20 +167,3 @@ spec:
           configMap:
             name: claude-mcp-config
             optional: true
-
----
-# Service (optional, for future gateway integration)
-apiVersion: v1
-kind: Service
-metadata:
-  name: claude-code
-  labels:
-    app: claude-code
-spec:
-  selector:
-    app: claude-code
-  ports:
-    - name: http
-      port: 8080
-      targetPort: 8080
-  type: ClusterIP
