@@ -87,9 +87,9 @@ validate_environment() {
         fi
     fi
 
-    # Log API endpoint if custom
+    # Log API endpoint if custom (don't log full URL - may contain credentials)
     if [[ -n "${ANTHROPIC_BASE_URL:-}" ]]; then
-        log_info "Using custom API endpoint: ${ANTHROPIC_BASE_URL}"
+        log_info "Using custom API endpoint (value redacted)"
     fi
 
     # Log model if specified
