@@ -3,10 +3,8 @@ name: Agent Tests
 on:
   push:
     branches: [main]
-    paths: ['agents/**']
   pull_request:
     branches: [main]
-    paths: ['agents/**']
   workflow_dispatch:
 
 permissions:
@@ -28,15 +26,30 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check for agent changes
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_ref="origin/${{ github.event.pull_request.base.ref }}"
+            if git diff --name-only "${base_ref}...HEAD" | grep -q '^agents/'; then
+              echo "agents=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "agents=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Python
+        if: steps.changes.outputs.agents == 'true'
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.12"
 
       - name: Install uv
+        if: steps.changes.outputs.agents == 'true'
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
 
       - name: Run tests
+        if: steps.changes.outputs.agents == 'true'
         id: run-tests
         run: |
           # Discover agent dirs containing unit-test files
@@ -86,7 +99,7 @@ jobs:
           exit "$failed"
 
       - name: Publish test report
-        if: always()
+        if: always() && steps.run-tests.outcome != 'skipped'
         uses: mikepenz/action-junit-report@bccf2e31636835cf0874589931c4116687171386  # v6.4.0
         with:
           report_paths: test-results/*.xml
