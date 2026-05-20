@@ -8,7 +8,7 @@ Deploy Claude Code as a containerized agent on Red Hat OpenShift AI and wire it 
 
 ### Summary
 
-Agent-level instrumentation via `mlflow autolog claude` works out of the box with any backend. Swapping Vertex AI for vLLM or OGX produces the same trace schema with no changes to the tracing setup. If server-side metrics are needed in future (e.g. per-hop latency, routing decisions), those would come from OGX or vLLM emitting their own OTel spans — the Claude Code hook only captures local agent-side data.
+Agent-level instrumentation via `mlflow autolog claude` works out of the box with any backend. Swapping Vertex AI for vLLM or OGX produces the same trace schema with no changes to the tracing setup. If server-side metrics are needed in future (e.g. per-hop latency, routing decisions), those would come from OGX or vLLM emitting their own OTel spans — the Claude Code hook only captures local agent-side data from the Claude Code session file.
 
 ### OGX Telemetry Capabilities
 
@@ -47,7 +47,7 @@ This works the same whether the backend is Vertex AI, vLLM directly, or OGX → 
 
 ### Integration Path
 
-The Claude Code stop hook is the right integration path for agent-level tracing. It captures tool calls, token usage, latency, and session ID out of the box — and works the same across Vertex AI, vLLM, and OGX without any changes. If additional server-side metrics are needed (e.g. per-hop vLLM latency, OGX routing decisions), those would require OGX or vLLM to emit their own OTel spans separately.
+The Claude Code stop hook is the right integration path for agent-level tracing. It captures tool calls, token usage, latency, and session ID out of the box because Claude Code records and writes all of this in its session file — and works the same across Vertex AI, vLLM, and OGX without any changes. If additional server-side metrics are needed (e.g. per-hop vLLM latency, OGX routing decisions), those would require OGX or vLLM to emit their own OTel spans separately.
 
 ---
 
