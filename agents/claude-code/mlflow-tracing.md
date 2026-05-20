@@ -1,6 +1,6 @@
 # MLflow Tracing for Claude Code Agent Runtimes on RHOAI
 
-We deployed Claude Code as a containerized agent on Red Hat OpenShift AI and wired it up to the MLflow instance running on the same cluster. To validate the full tracing stack, we ran the same prompt — **"build me a tetris game"** — through three different backends: Vertex AI (Google Cloud), vLLM directly, and OGX routing to vLLM. In all three cases, MLflow captured the complete session trace including every tool call, token usage, latency, and the full execution waterfall. The sections below document the telemetry investigation, the tracing prototype, session-level metrics, and the setup guide for productizing this on RHOAI 3.5.
+Deploy Claude Code as a containerized agent on Red Hat OpenShift AI and wire it up to the MLflow instance running on the same cluster. To validate the full tracing stack, the same prompt — **"build me a tetris game"** — was run through three different backends: Vertex AI (Google Cloud), vLLM directly, and OGX routing to vLLM. In all three cases, MLflow captured the complete session trace including every tool call, token usage, latency, and the full execution waterfall. The sections below document the telemetry investigation, the tracing prototype, session-level metrics, and the setup guide for productizing this on RHOAI 3.5.
 
 ---
 
@@ -49,54 +49,15 @@ This works the same whether the backend is Vertex AI, vLLM directly, or OGX → 
 
 The Claude Code stop hook is the right integration path. It already captures everything out of the box — tool calls, token usage, latency, session ID — and works the same across Vertex AI, vLLM, and OGX without any changes. If additional server-side metrics are needed (e.g. per-hop vLLM latency, OGX routing decisions), they can be added directly to the same hook since the infrastructure is already there.
 
-### Evidence: Same Traces Across All Three Backends
-
-We ran **"build me a tetris game"** against all three backends. All three produced the same trace schema.
-
-#### Backend 1: Vertex AI
-
-| Field | Value |
-|---|---|
-| Model | `claude-sonnet-4-5-20250929` |
-| Tokens | 18,504 |
-| Latency | 2.90 min |
-| Trace ID | `tr-c59dcf7c76c26e4d55255a32694a9bb7` |
-
-![Vertex trace](screenshots/vertex-trace.png)
-
-#### Backend 2: vLLM direct
-
-| Field | Value |
-|---|---|
-| Model | `gpt-oss-120b` |
-| Tokens | 46,211 |
-| Latency | 37.82s |
-| Trace ID | `tr-39a858c94eb86c3be340e23541717fe8` |
-
-![vLLM trace](screenshots/vllm-trace.png)
-
-#### Backend 3: OGX 1.0.2 → vLLM
-
-| Field | Value |
-|---|---|
-| Model | `gpt-oss-120b` |
-| Tokens | 29,629 |
-| Latency | 39.62s |
-| Trace ID | `tr-26175953d7cb441e3e2da1cc5fc24607` |
-
-![OGX trace](screenshots/ogx-trace.png)
-
 ---
 
 ## Tool Call Traces & Agent Execution Metrics
 
 ### Summary
 
-**Tool call tracing** — We prototyped tool call tracing using `mlflow autolog claude`. Every tool Claude Code calls (Write, Read, Edit, Bash, AskUserQuestion, etc.) is captured as a span in MLflow with the tool name, input parameters, output/result, and latency. Tested across three backends with a real coding task — Vertex AI produced 15 spans, vLLM and OGX produced 8 each. MLflow integration works end-to-end. The stop-hook fires after the session so there is no latency impact.
+**Tool call tracing** — Using `mlflow autolog claude`, every tool Claude Code calls (Write, Read, Edit, Bash, AskUserQuestion, etc.) is captured as a span in MLflow with the tool name, input parameters, output/result, and latency. Tested across three backends with a real coding task — Vertex AI produced 15 spans, vLLM and OGX produced 8 each. MLflow integration works end-to-end. The stop-hook fires after the session so there is no latency impact.
 
-**Session-level metrics** — On top of the tool call spans, each trace also captures higher-level session metrics: session ID, total duration, input/output token counts, and the full tool call sequence as a waterfall. This answers "what did the agent do and how much did it cost?" for any session. Validated with a complete multi-turn coding task ("build me a tetris game") across all three backends.
-
-As you can see in the results below.
+**Session-level metrics** — On top of the tool call spans, each trace also captures higher-level session metrics: session ID, total duration, input/output token counts, and the full tool call sequence as a waterfall. This answers "what did the agent do and how much did it cost?" for any session.
 
 ### Trace Schema
 
@@ -126,9 +87,11 @@ Each span captures: tool name, input parameters, output/result, and per-span lat
 | Model | ✅ |
 | Status | ✅ |
 
-### Results: "Build me a Tetris game"
+### Results: "Build me a Tetris game" — All Three Backends
 
-#### Backend 1: Vertex AI (`claude-sonnet-4-5-20250929`)
+Run **"build me a tetris game"** against all three backends. All three produced the same trace schema — prompt, response, token counts, latency, and full tool call sequence.
+
+#### Vertex AI (`claude-sonnet-4-5-20250929`)
 
 | Metric | Value |
 |---|---|
@@ -138,11 +101,12 @@ Each span captures: tool name, input parameters, output/result, and per-span lat
 | Spans | 15 |
 | Trace ID | `tr-c59dcf7c76c26e4d55255a32694a9bb7` |
 
+![Vertex trace](screenshots/vertex-trace.png)
 ![Vertex waterfall](screenshots/vertex-summary.png)
 
 ---
 
-#### Backend 2: vLLM direct (`gpt-oss-120b`)
+#### vLLM direct (`gpt-oss-120b`)
 
 | Metric | Value |
 |---|---|
@@ -152,11 +116,12 @@ Each span captures: tool name, input parameters, output/result, and per-span lat
 | Spans | 8 |
 | Trace ID | `tr-39a858c94eb86c3be340e23541717fe8` |
 
+![vLLM trace](screenshots/vllm-trace.png)
 ![vLLM waterfall](screenshots/vllm-summary.png)
 
 ---
 
-#### Backend 3: OGX 1.0.2 → vLLM (`gpt-oss-120b`)
+#### OGX 1.0.2 → vLLM (`gpt-oss-120b`)
 
 | Metric | Value |
 |---|---|
@@ -166,6 +131,7 @@ Each span captures: tool name, input parameters, output/result, and per-span lat
 | Spans | 8 |
 | Trace ID | `tr-26175953d7cb441e3e2da1cc5fc24607` |
 
+![OGX trace](screenshots/ogx-trace.png)
 ![OGX waterfall](screenshots/ogx-summary.png)
 
 ---
@@ -174,7 +140,7 @@ Each span captures: tool name, input parameters, output/result, and per-span lat
 
 ### Summary
 
-MLflow integration works. This guide documents how to hook Claude Code, OGX, and MLflow together on RHOAI — assuming all three are already deployed on the cluster. The setup requires the Red Hat MLflow fork for RHOAI 3.4, which will be replaced by upstream MLflow 3.11 in a future release.
+MLflow integration works. Follow this guide to hook Claude Code, OGX, and MLflow together on RHOAI — assuming all three are already deployed on the cluster. The setup requires the Red Hat MLflow fork for RHOAI 3.4, which will be replaced by upstream MLflow 3.11 in a future release.
 
 ### Prerequisites
 
