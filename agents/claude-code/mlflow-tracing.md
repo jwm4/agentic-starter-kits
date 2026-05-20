@@ -4,7 +4,7 @@ We deployed Claude Code as a containerized agent on Red Hat OpenShift AI and wir
 
 ---
 
-## RHAIENG-4751 — Inventory OGX Telemetry Hooks and MLflow Integration Points
+## Inventory OGX Telemetry Hooks and MLflow Integration Points
 
 ### Summary
 
@@ -88,13 +88,13 @@ We ran **"build me a tetris game"** against all three backends. All three produc
 
 ---
 
-## RHAIENG-4752 & RHAIENG-4753 — Tool Call Traces & Agent Execution Metrics
+## Tool Call Traces & Agent Execution Metrics
 
 ### Summary
 
-**RHAIENG-4752** — We prototyped tool call tracing using `mlflow autolog claude`. Every tool Claude Code calls (Write, Read, Edit, Bash, AskUserQuestion, etc.) is captured as a span in MLflow with the tool name, input parameters, output/result, and latency. Tested across three backends with a real coding task — Vertex AI produced 15 spans, vLLM and OGX produced 8 each. MLflow integration works end-to-end. The stop-hook fires after the session so there is no latency impact.
+**Tool call tracing** — We prototyped tool call tracing using `mlflow autolog claude`. Every tool Claude Code calls (Write, Read, Edit, Bash, AskUserQuestion, etc.) is captured as a span in MLflow with the tool name, input parameters, output/result, and latency. Tested across three backends with a real coding task — Vertex AI produced 15 spans, vLLM and OGX produced 8 each. MLflow integration works end-to-end. The stop-hook fires after the session so there is no latency impact.
 
-**RHAIENG-4753** — On top of the tool call spans, each trace also captures higher-level session metrics: session ID, total duration, input/output token counts, and the full tool call sequence as a waterfall. This answers "what did the agent do and how much did it cost?" for any session. Validated with a complete multi-turn coding task ("build me a tetris game") across all three backends.
+**Session-level metrics** — On top of the tool call spans, each trace also captures higher-level session metrics: session ID, total duration, input/output token counts, and the full tool call sequence as a waterfall. This answers "what did the agent do and how much did it cost?" for any session. Validated with a complete multi-turn coding task ("build me a tetris game") across all three backends.
 
 As you can see in the results below.
 
@@ -170,7 +170,7 @@ Each span captures: tool name, input parameters, output/result, and per-span lat
 
 ---
 
-## RHAIENG-4754 — Observability Setup Guide & RHOAI 3.5 Recommendation
+## Observability Setup Guide & RHOAI 3.5 Recommendation
 
 ### Summary
 
@@ -180,7 +180,7 @@ MLflow integration works. This guide documents how to hook Claude Code, OGX, and
 
 The following must already be running on the cluster:
 
-- Claude Code container deployed (see [PR #92](https://github.com/red-hat-data-services/agentic-starter-kits/pull/92))
+- Claude Code container deployed (see [agents/claude/claude_agent](https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/claude/claude_agent))
 - OGX deployed and serving a model
 - MLflow instance running via the ODH/RHOAI operator with a workspace matching your namespace
 
@@ -193,7 +193,7 @@ The ODH build of MLflow uses the Red Hat fork which includes the `kubernetes-nam
 ```dockerfile
 RUN microdnf install -y python3.12 python3.12-pip
 RUN python3.12 -m pip install --no-cache-dir \
-  'mlflow[kubernetes] @ git+https://github.com/red-hat-data-services/mlflow.git@rhoai-3.4'
+  'mlflow[kubernetes] @ git+https://github.com/red-hat-data-services/mlflow.git@v3.10.1+rhaiv.3'
 ```
 
 > This fork requirement will go away when RHOAI ships MLflow 3.11, at which point replace with `mlflow[kubernetes]>=3.11`.
@@ -227,7 +227,7 @@ oc adm policy add-role-to-user edit -z default -n <your-namespace>
 - name: ANTHROPIC_BASE_URL
   value: "https://<your-ogx-route>"
 - name: ANTHROPIC_API_KEY
-  value: "fake"  # OGX does not validate API keys for self-hosted models, any non-empty string works
+  value: "not-needed"  # OGX does not validate API keys for self-hosted models, any non-empty string works
 - name: ANTHROPIC_CUSTOM_MODEL_OPTION
   value: "vllm/<your-model-name>"
 ```
