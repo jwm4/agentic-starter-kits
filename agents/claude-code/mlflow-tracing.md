@@ -43,7 +43,7 @@ The spans produced by `mlflow autolog claude` are OTel spans. Every session capt
 | Model | `gpt-oss-120b`, `claude-sonnet-4-5-20250929`, etc. |
 | Status | OK / error |
 
-This works the same whether the backend is Vertex AI, vLLM directly, or OGX → vLLM. If server-side OGX spans are needed in future, they would be added to the same Claude Code stop hook.
+This works the same whether the backend is Vertex AI, vLLM directly, or OGX → vLLM, using the same Claude Code hook that emits these OTel spans. If server-side OGX spans are needed in the future, they would need to be emitted using a custom exporter.
 
 ### Integration Path
 
