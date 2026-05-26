@@ -15,6 +15,10 @@ updates:
         applies-to: "version-updates"
         update-types:
           - "minor"
+      major:
+        applies-to: "version-updates"
+        update-types:
+          - "major"
 
   - package-ecosystem: "pip"
     directories:
@@ -28,17 +32,16 @@ updates:
     groups:
       patch:
         applies-to: "version-updates"
-        dependency-type: "production"
+        group-by: "dependency-name"
         update-types:
           - "patch"
       minor:
         applies-to: "version-updates"
-        dependency-type: "production"
+        group-by: "dependency-name"
         update-types:
           - "minor"
-      dev-patch-minor:
+      major:
         applies-to: "version-updates"
-        dependency-type: "development"
+        group-by: "dependency-name"
         update-types:
-          - "patch"
-          - "minor"
+          - "major"
