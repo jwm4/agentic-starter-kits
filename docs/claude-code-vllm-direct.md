@@ -285,7 +285,7 @@ oc logs deployment/claude-code -n <NAMESPACE>
 
 Expected output:
 
-```
+```text
 [entrypoint] INFO: Starting Claude Code container
 [entrypoint] INFO: Using custom API endpoint: http://<MODEL_SHORT_NAME>.<NAMESPACE>.svc.cluster.local:8000
 [entrypoint] INFO: Using model: <MODEL_NAME>
@@ -391,6 +391,7 @@ Measured with `openai/gpt-oss-120b` on `g6e.12xlarge` (4x L40S), 3 runs averaged
 | Tool use | — | 451ms | 49 | 109.2 tok/s |
 
 **Key observations:**
+
 - Non-streaming OpenAI and Anthropic APIs perform nearly identically (~110-150 tok/s).
 - Anthropic streaming uses fewer, larger SSE chunks than OpenAI streaming.
 - TTFB for short prompts is ~350ms; long prompts ~500-1300ms.
@@ -431,6 +432,7 @@ oc set env deployment/claude-code CLAUDE_MODEL=my-custom-model-name
 | Claude Code with aliased model name | PASS |
 
 **Important behavior:**
+
 - `--served-model-name` is a **replacement**, not an addition. The original HuggingFace model ID (`openai/gpt-oss-120b`) is no longer recognized after setting an alias.
 - To keep both the original name and an alias, pass the flag twice: `--served-model-name openai/gpt-oss-120b --served-model-name my-alias`.
 - No OGX is required for model aliasing — vLLM handles it natively.
@@ -456,7 +458,7 @@ oc set env deployment/claude-code CLAUDE_MODEL=my-custom-model-name
 
 Claude Code sends a large internal system prompt (~20K+ tokens) with every request. Models with insufficient context will fail:
 
-```
+```text
 API Error: 400 {"type":"error","error":{"type":"BadRequestError",
 "message":"max_tokens must be at least 1, got -7214."}}
 ```
