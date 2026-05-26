@@ -21,6 +21,7 @@ VLLM_URL="${VLLM_URL:-}"
 VLLM_MODEL="${VLLM_MODEL:-}"
 VLLM_API_KEY="${VLLM_API_KEY:-}"
 VLLM_TIMEOUT="${VLLM_TIMEOUT:-60}"
+VLLM_INSECURE="${VLLM_INSECURE:-false}"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -28,10 +29,11 @@ while [[ $# -gt 0 ]]; do
     --model)     VLLM_MODEL="$2";   shift 2 ;;
     --api-key)   VLLM_API_KEY="$2"; shift 2 ;;
     --timeout)   VLLM_TIMEOUT="$2"; shift 2 ;;
+    --insecure)  VLLM_INSECURE="true"; shift ;;
     -h|--help)
-      echo "Usage: $0 --url <VLLM_URL> --model <MODEL> [--api-key <KEY>] [--timeout <SECS>]"
+      echo "Usage: $0 --url <VLLM_URL> --model <MODEL> [--api-key <KEY>] [--timeout <SECS>] [--insecure]"
       echo ""
-      echo "Environment variables: VLLM_URL, VLLM_MODEL, VLLM_API_KEY, VLLM_TIMEOUT"
+      echo "Environment variables: VLLM_URL, VLLM_MODEL, VLLM_API_KEY, VLLM_TIMEOUT, VLLM_INSECURE"
       exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
@@ -56,7 +58,10 @@ PASS=0
 FAIL=0
 SKIP=0
 
-curl_opts=(-sk --max-time "$VLLM_TIMEOUT")
+curl_opts=(-s --max-time "$VLLM_TIMEOUT")
+if [[ "$VLLM_INSECURE" == "true" ]]; then
+  curl_opts+=(-k)
+fi
 if [[ -n "$VLLM_API_KEY" ]]; then
   curl_opts+=(-H "Authorization: Bearer $VLLM_API_KEY" -H "x-api-key: $VLLM_API_KEY")
 fi

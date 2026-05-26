@@ -23,6 +23,7 @@ VLLM_MODEL="${VLLM_MODEL:-}"
 VLLM_API_KEY="${VLLM_API_KEY:-}"
 VLLM_TIMEOUT="${VLLM_TIMEOUT:-120}"
 VLLM_RUNS="${VLLM_RUNS:-3}"
+VLLM_INSECURE="${VLLM_INSECURE:-false}"
 OUTPUT_DIR="${OUTPUT_DIR:-.}"
 
 while [[ $# -gt 0 ]]; do
@@ -33,6 +34,7 @@ while [[ $# -gt 0 ]]; do
     --timeout)   VLLM_TIMEOUT="$2"; shift 2 ;;
     --runs)      VLLM_RUNS="$2";    shift 2 ;;
     --output)    OUTPUT_DIR="$2";   shift 2 ;;
+    --insecure)  VLLM_INSECURE="true"; shift ;;
     -h|--help)
       echo "Usage: $0 --url <VLLM_URL> --model <MODEL> [OPTIONS]"
       echo ""
@@ -43,6 +45,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --timeout   Request timeout in seconds (default: 120)"
       echo "  --runs      Repetitions per test for averaging (default: 3)"
       echo "  --output    Directory for results JSON (default: current dir)"
+      echo "  --insecure  Disable TLS certificate verification (or VLLM_INSECURE=true)"
       exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
@@ -50,6 +53,11 @@ done
 
 if [[ -z "$VLLM_URL" || -z "$VLLM_MODEL" ]]; then
   echo "Error: --url and --model are required (or set VLLM_URL and VLLM_MODEL)"
+  exit 1
+fi
+
+if ! [[ "$VLLM_RUNS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Error: --runs must be a positive integer"
   exit 1
 fi
 
@@ -61,7 +69,10 @@ BOLD='\033[1m'
 DIM='\033[2m'
 NC='\033[0m'
 
-curl_opts=(-sk --max-time "$VLLM_TIMEOUT")
+curl_opts=(-s --max-time "$VLLM_TIMEOUT")
+if [[ "$VLLM_INSECURE" == "true" ]]; then
+  curl_opts+=(-k)
+fi
 if [[ -n "$VLLM_API_KEY" ]]; then
   curl_opts+=(-H "Authorization: Bearer $VLLM_API_KEY" -H "x-api-key: $VLLM_API_KEY")
 fi
@@ -70,7 +81,7 @@ RESULTS_JSON="[]"
 
 add_result() {
   local test_name="$1" api="$2" streaming="$3" prompt_tokens="$4" completion_tokens="$5"
-  local ttfb="$6" total_time="$7" tokens_per_sec="$8"
+  local ttfb="$6" total_time="$7" throughput="$8" unit="$9"
   RESULTS_JSON=$(echo "$RESULTS_JSON" | jq \
     --arg name "$test_name" \
     --arg api "$api" \
@@ -79,11 +90,12 @@ add_result() {
     --argjson ct "$completion_tokens" \
     --argjson ttfb "$ttfb" \
     --argjson total "$total_time" \
-    --argjson tps "$tokens_per_sec" \
+    --argjson tps "$throughput" \
+    --arg unit "$unit" \
     '. + [{
       test: $name, api: $api, streaming: ($streaming == "true"),
       prompt_tokens: $pt, completion_tokens: $ct,
-      ttfb_ms: $ttfb, total_ms: $total, tokens_per_sec: $tps
+      ttfb_ms: $ttfb, total_ms: $total, throughput: $tps, throughput_unit: $unit
     }]')
 }
 
@@ -202,10 +214,10 @@ bench() {
 
   if [[ "$streaming" == "false" ]]; then
     echo -e "  ${BOLD}Avg: ${avg_time}ms | prompt=$avg_pt completion=$avg_ct | $avg_tps tok/s${NC}"
-    add_result "$test_name" "$api" "false" "$avg_pt" "$avg_ct" "0" "$avg_time" "$avg_tps"
+    add_result "$test_name" "$api" "false" "$avg_pt" "$avg_ct" "0" "$avg_time" "$avg_tps" "tok/s"
   else
     echo -e "  ${BOLD}Avg: TTFB=${avg_ttfb}ms total=${avg_time}ms | $avg_ct chunks | $avg_tps chunk/s${NC}"
-    add_result "$test_name" "$api" "true" "0" "$avg_ct" "$avg_ttfb" "$avg_time" "$avg_tps"
+    add_result "$test_name" "$api" "true" "0" "$avg_ct" "$avg_ttfb" "$avg_time" "$avg_tps" "chunk/s"
   fi
 }
 
@@ -282,14 +294,14 @@ echo ""
 printf "  ${BOLD}%-30s %8s %8s %8s %10s${NC}\n" "Test" "TTFB" "Total" "Tokens" "Throughput"
 printf "  %-30s %8s %8s %8s %10s\n" "------------------------------" "--------" "--------" "--------" "----------"
 
-echo "$RESULTS_JSON" | jq -r '.[] | [.test, .ttfb_ms, .total_ms, .completion_tokens, .tokens_per_sec] | @tsv' | \
-while IFS=$'\t' read -r name ttfb total tokens tps; do
+echo "$RESULTS_JSON" | jq -r '.[] | [.test, .ttfb_ms, .total_ms, .completion_tokens, .throughput, .throughput_unit] | @tsv' | \
+while IFS=$'\t' read -r name ttfb total tokens tps unit; do
   if [[ "$ttfb" == "0" ]]; then
     ttfb_str="—"
   else
     ttfb_str="${ttfb}ms"
   fi
-  printf "  %-30s %8s %7sms %8s %8s/s\n" "$name" "$ttfb_str" "$total" "$tokens" "$tps"
+  printf "  %-30s %8s %7sms %8s %8s %s\n" "$name" "$ttfb_str" "$total" "$tokens" "$tps" "$unit"
 done
 
 # --- Save results -------------------------------------------------------------

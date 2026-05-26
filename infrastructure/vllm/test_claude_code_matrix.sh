@@ -55,7 +55,7 @@ header() { echo -e "\n${BOLD}[$1] $2${NC}"; }
 claude_run() {
   local prompt="$1"
   oc exec "deployment/$CLAUDE_DEPLOYMENT" -n "$VLLM_NAMESPACE" -- \
-    bash -c "export HOME=/home/claude-agent && timeout ${VLLM_TIMEOUT} ~/.claude/claude-run -p '$prompt'" 2>&1
+    bash -c 'export HOME=/home/claude-agent && timeout "$1" ~/.claude/claude-run -p "$2"' _ "$VLLM_TIMEOUT" "$prompt" 2>&1
 }
 
 # --- Preflight ----------------------------------------------------------------
@@ -131,14 +131,13 @@ else
   fail "Could not read /etc/os-release or identify OS: $resp_short"
 fi
 
-# 5. Streaming — verify via logs
-header "5/5" "Streaming Verification"
-log_before=$(oc logs "deployment/$CLAUDE_DEPLOYMENT" -n "$VLLM_NAMESPACE" --tail=5 2>/dev/null | wc -l)
-resp=$(claude_run "Say the word 'streaming-test-ok'.")
-log_after=$(oc logs "deployment/$CLAUDE_DEPLOYMENT" -n "$VLLM_NAMESPACE" --tail=20 2>/dev/null)
+# 5. CLI response verification
+header "5/5" "CLI Response Verification"
+resp=$(claude_run "Say the word streaming-test-ok.")
 
 if echo "$resp" | grep -qi "streaming-test-ok"; then
-  pass "Response received (streaming inferred from successful CLI interaction)"
+  resp_short=$(echo "$resp" | tr '\n' ' ' | head -c 200)
+  pass "CLI response received: $resp_short"
 else
   resp_short=$(echo "$resp" | tr '\n' ' ' | head -c 300)
   fail "Expected 'streaming-test-ok' in response: $resp_short"

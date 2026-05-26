@@ -188,7 +188,14 @@ spec:
     matchLabels:
       app: <MODEL_SHORT_NAME>
   ingress:
-  - ports:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          network.openshift.io/policy-group: ingress
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: <NAMESPACE>
+    ports:
     - port: 8000
       protocol: TCP
   policyTypes:
