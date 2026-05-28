@@ -111,6 +111,7 @@ See the existing implementations for reference:
 - `agents/crewai/websearch_agent/tests/behavioral/` (single tool: `Web Search`)
 - `agents/langgraph/agentic_rag/tests/behavioral/` (single tool: `retriever`)
 - `agents/langgraph/react_with_database_memory/tests/behavioral/` (single tool: `search` + PostgreSQL memory)
+- `agents/llamaindex/websearch_agent/tests/behavioral/` (single tool: `dummy_web_search`)
 
 ## 6. Register the Agent Marker
 

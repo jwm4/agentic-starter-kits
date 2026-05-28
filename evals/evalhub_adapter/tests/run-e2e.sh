@@ -105,6 +105,7 @@ REQUIRED_FILES=(
   "agents/crewai/websearch_agent/evalhub/tool_use.yaml"
   "agents/langgraph/agentic_rag/evalhub/tool_use.yaml"
   "agents/langgraph/react_with_database_memory/evalhub/tool_use.yaml"
+  "agents/llamaindex/websearch_agent/evalhub/tool_use.yaml"
 )
 for f in "${REQUIRED_FILES[@]}"; do
   if [[ -f "${REPO_ROOT}/${f}" ]]; then
@@ -217,6 +218,18 @@ else
   preflight_ok "DB Memory agent route (override): ${DB_MEMORY_AGENT_ROUTE}"
 fi
 
+if [[ -z "${LLAMAINDEX_WEBSEARCH_ROUTE:-}" ]]; then
+  LLAMAINDEX_WEBSEARCH_ROUTE=$(get_route "llamaindex-websearch-agent" || true)
+  [[ -z "${LLAMAINDEX_WEBSEARCH_ROUTE}" ]] && LLAMAINDEX_WEBSEARCH_ROUTE=$(get_route_contains "llamaindex")
+  if [[ -n "${LLAMAINDEX_WEBSEARCH_ROUTE}" ]]; then
+    preflight_ok "LlamaIndex Websearch agent route: ${LLAMAINDEX_WEBSEARCH_ROUTE}"
+  else
+    preflight_fail "Could not discover llamaindex_websearch_agent route. Set LLAMAINDEX_WEBSEARCH_ROUTE manually."
+  fi
+else
+  preflight_ok "LlamaIndex Websearch agent route (override): ${LLAMAINDEX_WEBSEARCH_ROUTE}"
+fi
+
 if [[ -z "${MLFLOW_TRACKING_URI:-}" ]]; then
   MLFLOW_TRACKING_URI=$(oc get deployment -n "${OC_NAMESPACE}" -o jsonpath='{.items[*].spec.template.spec.containers[0].env[?(@.name=="MLFLOW_TRACKING_URI")].value}' 2>/dev/null | awk '{print $1}' || true)
   if [[ -z "${MLFLOW_TRACKING_URI}" ]]; then
@@ -320,6 +333,14 @@ if [[ -n "${DB_MEMORY_AGENT_ROUTE:-}" ]]; then
   fi
 fi
 
+if [[ -n "${LLAMAINDEX_WEBSEARCH_ROUTE:-}" ]]; then
+  if curl -sf --max-time 10 "https://${LLAMAINDEX_WEBSEARCH_ROUTE}/health" > /dev/null 2>&1; then
+    preflight_ok "llamaindex_websearch_agent /health responded"
+  else
+    preflight_warn "llamaindex_websearch_agent /health not reachable (https://${LLAMAINDEX_WEBSEARCH_ROUTE}/health)"
+  fi
+fi
+
 if [[ -n "${EVALHUB_ROUTE:-}" ]]; then
   if curl -sf --max-time 10 "https://${EVALHUB_ROUTE}/api/v1/health" > /dev/null 2>&1; then
     preflight_ok "EvalHub API healthy"
@@ -399,6 +420,7 @@ echo "  AutoGen MCP agent: ${AUTOGEN_MCP_AGENT_ROUTE}"
 echo "  CrewAI Websearch:  ${CREWAI_WEBSEARCH_ROUTE}"
 echo "  Agentic RAG agent: ${AGENTIC_RAG_AGENT_ROUTE}"
 echo "  DB Memory agent:   ${DB_MEMORY_AGENT_ROUTE}"
+echo "  LlamaIndex Websearch: ${LLAMAINDEX_WEBSEARCH_ROUTE}"
 echo "  MLflow:            ${MLFLOW_TRACKING_URI}"
 echo "  Experiment:        ${MLFLOW_EXPERIMENT}"
 
@@ -649,6 +671,29 @@ EOF
 
 echo "  Created: eval-db-memory-agent.yaml"
 
+cat > "${WORK_DIR}/eval-llamaindex-websearch-agent.yaml" <<EOF
+name: agentic-tool-use-llamaindex-websearch-agent
+description: EvalHub orchestration run for LlamaIndex websearch_agent
+model:
+  name: llamaindex-websearch-agent
+  url: https://${LLAMAINDEX_WEBSEARCH_ROUTE}
+benchmarks:
+  - id: agentic-tool-use
+    provider_id: ${PROVIDER_ID}
+    parameters:
+      known_tools: ["dummy_web_search"]
+      forbidden_actions: ["shell execution"]
+      max_latency_seconds: 15.0
+      timeout_seconds: 45.0
+      verify_ssl: true
+      fixtures_path: fixtures/llamaindex_websearch
+      mlflow_tracking_uri: ${MLFLOW_INTERNAL_URI}
+      mlflow_experiment_name: ${MLFLOW_EXPERIMENT}
+      mlflow_trace_experiment_name: ${MLFLOW_AGENT_EXPERIMENT}
+EOF
+
+echo "  Created: eval-llamaindex-websearch-agent.yaml"
+
 # ---------------------------------------------------------------------------
 # Step 6 — Submit jobs and wait
 # ---------------------------------------------------------------------------
@@ -730,6 +775,19 @@ for line in sys.stdin:
         break
 " 2>/dev/null || true)
 
+echo ""
+echo "=== Step 6: Submitting llamaindex_websearch_agent eval ==="
+LLAMAINDEX_OUTPUT=$(evalhub eval run --config "${WORK_DIR}/eval-llamaindex-websearch-agent.yaml" --wait --poll-interval 5 2>&1)
+echo "${LLAMAINDEX_OUTPUT}"
+LLAMAINDEX_JOB_ID=$(echo "${LLAMAINDEX_OUTPUT}" | python3 -c "
+import sys, re
+for line in sys.stdin:
+    m = re.search(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', line)
+    if m:
+        print(m.group())
+        break
+" 2>/dev/null || true)
+
 # ---------------------------------------------------------------------------
 # Step 7 — Check results
 # ---------------------------------------------------------------------------
@@ -799,6 +857,8 @@ echo ""
 print_results "agentic_rag_agent" "${AGENTIC_RAG_JOB_ID:-}"
 echo ""
 print_results "db_memory_agent" "${DB_MEMORY_JOB_ID:-}"
+echo ""
+print_results "llamaindex_websearch_agent" "${LLAMAINDEX_JOB_ID:-}"
 
 # ---------------------------------------------------------------------------
 # Cleanup
