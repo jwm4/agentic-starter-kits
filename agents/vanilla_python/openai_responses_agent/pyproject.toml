@@ -11,6 +11,7 @@ dependencies = [
     "setuptools>=80.9.0,<83.0.0",
     "flask>=3.1.0",
     "fastapi>=0.135.1",
+    "starlette>=1.0.1",
     "uvicorn[standard]>=0.41.0",
 ]
 
