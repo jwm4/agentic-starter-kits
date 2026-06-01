@@ -172,7 +172,7 @@ def _extract_langflow_tool_calls(
                         }
                     )
     except (KeyError, IndexError, TypeError):
-        pass
+        logger.debug("Failed to extract Langflow tool calls from response", exc_info=True)
     return tool_calls
 
 

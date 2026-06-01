@@ -277,6 +277,26 @@ class TestLangflowApiFormatValidation:
         with pytest.raises(ValueError, match="flow_id is required"):
             AgenticEvalParams.from_dict(raw)
 
+    def test_flow_id_with_path_traversal_raises(self):
+        """flow_id containing path-unsafe characters raises ValueError."""
+        with pytest.raises(ValueError, match="flow_id must contain only"):
+            AgenticEvalParams(
+                api_format="langflow_run",
+                flow_id="../../admin/delete",
+                mlflow_tracking_uri="http://mlflow:5000",
+                mlflow_experiment_name="test-exp",
+            )
+
+    def test_flow_id_with_slash_raises(self):
+        """flow_id containing slashes raises ValueError."""
+        with pytest.raises(ValueError, match="flow_id must contain only"):
+            AgenticEvalParams(
+                api_format="langflow_run",
+                flow_id="abc/def",
+                mlflow_tracking_uri="http://mlflow:5000",
+                mlflow_experiment_name="test-exp",
+            )
+
 
 class TestJobSpecToTaskConfig:
     """Tests for translating EvalHub job parameters into TaskConfig."""

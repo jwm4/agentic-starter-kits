@@ -63,7 +63,9 @@ async def _get_langflow_token(base_url: str, client: httpx.AsyncClient) -> str:
     token = data.get("access_token")
     if not token:
         raise ValueError(
-            f"Langflow auto_login response missing 'access_token': {list(data.keys())}"
+            "Langflow auto_login response missing 'access_token'. "
+            "Ensure the Langflow instance has LANGFLOW_AUTO_LOGIN=true. "
+            f"Response keys: {list(data.keys())}"
         )
     return token
 
@@ -186,7 +188,6 @@ class AgenticEvalAdapter(FrameworkAdapter):
             if params.api_format == "langflow_run":
                 token = await _get_langflow_token(agent_url, client)
                 langflow_headers = {"Authorization": f"Bearer {token}"}
-                logger.info("Langflow auth token acquired for %s", agent_url)
 
             for i, query_spec in enumerate(queries):
                 progress = 30.0 + (50.0 * (i + 1) / len(queries))
