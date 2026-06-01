@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlparse
 
 from harness.runner import TaskConfig
@@ -97,6 +97,8 @@ class AgenticEvalParams:
     verify_ssl: bool = True
     fixtures_path: str = "fixtures"
     stream: bool = False
+    api_format: Literal["chat_completions", "langflow_run"] = "chat_completions"
+    flow_id: str | None = None
 
     # MLflow trace enrichment (reads tool calls from agent-side traces)
     mlflow_tracking_uri: str | None = None
@@ -106,6 +108,13 @@ class AgenticEvalParams:
 
     def __post_init__(self) -> None:
         """Validate fields and apply defaults after dataclass init."""
+        if self.api_format not in ("chat_completions", "langflow_run"):
+            raise ValueError(
+                f"api_format must be 'chat_completions' or 'langflow_run', "
+                f"got '{self.api_format}'"
+            )
+        if self.api_format == "langflow_run" and not self.flow_id:
+            raise ValueError("flow_id is required when api_format is 'langflow_run'")
         if not self.mlflow_trace_experiment_name:
             self.mlflow_trace_experiment_name = self.mlflow_experiment_name
         if not isinstance(self.timeout_seconds, (int, float)):
@@ -175,14 +184,19 @@ def job_spec_to_task_config(
     expected_tools: list[str] | None,
     params: AgenticEvalParams,
     model_name: str | None = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> TaskConfig:
     """Translate EvalHub job parameters into our TaskConfig."""
     _validate_url(agent_url, "agent_url")
+    stream = False if params.api_format == "langflow_run" else params.stream
     return TaskConfig(
         agent_url=agent_url,
         query=query,
         expected_tools=expected_tools,
         timeout_seconds=params.timeout_seconds,
         model=model_name,
-        stream=params.stream,
+        stream=stream,
+        api_format=params.api_format,
+        flow_id=params.flow_id,
+        extra_headers=extra_headers or {},
     )
