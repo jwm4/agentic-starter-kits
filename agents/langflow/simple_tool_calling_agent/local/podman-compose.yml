@@ -3,11 +3,9 @@ version: "3.8"
 services:
   # ── Langflow (UI + Server) ─────────────────────────────────────────
   langflow:
-    image: docker.io/langflowai/langflow:1.9.5
-    command: >
-      sh -c "pip install --quiet 'pydantic>=2.13' 'langfuse~=3.8' && langflow run"
+    build: .
     ports:
-      - "7860:7860"
+      - "127.0.0.1:7860:7860"
     environment:
       LANGFLOW_DATABASE_URL: "postgresql://${POSTGRES_USER:-langflow}:${POSTGRES_PASSWORD:-langflow}@postgres:5432/${POSTGRES_DB:-langflow}"
       LANGFLOW_CONFIG_DIR: /var/lib/langflow
