@@ -205,7 +205,7 @@
             "icon": "MessagesSquare",
             "key": "ChatInput",
             "legacy": false,
-            "lf_version": "1.9.4",
+            "lf_version": "1.9.5",
             "metadata": {
               "code_hash": "7a26c54d89ed",
               "dependencies": {
@@ -483,7 +483,7 @@
             "frozen": false,
             "icon": "MessagesSquare",
             "legacy": false,
-            "lf_version": "1.9.4",
+            "lf_version": "1.9.5",
             "metadata": {
               "code_hash": "84009527d08c",
               "dependencies": {
@@ -797,7 +797,7 @@
             "icon": "bot",
             "last_updated": "2026-06-01T15:54:24.407Z",
             "legacy": false,
-            "lf_version": "1.9.4",
+            "lf_version": "1.9.5",
             "metadata": {
               "code_hash": "154c71cf7441",
               "dependencies": {
@@ -1532,7 +1532,7 @@
             "icon": "cloud",
             "last_updated": "2026-06-01T15:54:24.410Z",
             "legacy": false,
-            "lf_version": "1.9.4",
+            "lf_version": "1.9.5",
             "metadata": {
               "code_hash": "debf08d0a0d5",
               "dependencies": {
@@ -1823,7 +1823,7 @@
             "icon": "map",
             "last_updated": "2026-06-01T15:54:24.411Z",
             "legacy": false,
-            "lf_version": "1.9.4",
+            "lf_version": "1.9.5",
             "metadata": {
               "code_hash": "10229bbf5ea9",
               "dependencies": {
@@ -2061,7 +2061,7 @@
             "icon": "alert-triangle",
             "last_updated": "2026-06-01T15:54:24.412Z",
             "legacy": false,
-            "lf_version": "1.9.4",
+            "lf_version": "1.9.5",
             "metadata": {
               "code_hash": "3040cf95d296",
               "dependencies": {
@@ -2264,7 +2264,7 @@
             "frozen": false,
             "icon": "server",
             "legacy": false,
-            "lf_version": "1.9.4",
+            "lf_version": "1.9.5",
             "metadata": {
               "code_hash": "07b5b42b04cc",
               "dependencies": {
@@ -2275,7 +2275,7 @@
                   },
                   {
                     "name": "langflow",
-                    "version": "1.9.4"
+                    "version": "1.9.5"
                   }
                 ],
                 "total_dependencies": 2
@@ -2552,7 +2552,7 @@
   "description": "Find outdoor activities in a specific area based on nearby national parks, upcoming weather, and park alerts.",
   "endpoint_name": null,
   "is_component": false,
-  "last_tested_version": "1.9.4",
+  "last_tested_version": "1.9.5",
   "locked": false,
   "name": "Outdoor Activity Agent",
   "tags": [

@@ -3,9 +3,9 @@ version: "3.8"
 services:
   # ── Langflow (UI + Server) ─────────────────────────────────────────
   langflow:
-    image: docker.io/langflowai/langflow:1.9.4
+    image: docker.io/langflowai/langflow:1.9.5
     command: >
-      sh -c "pip install --quiet langfuse && langflow run"
+      sh -c "pip install --quiet 'pydantic>=2.13' 'langfuse~=3.8' && langflow run"
     ports:
       - "7860:7860"
     environment:
@@ -24,7 +24,7 @@ services:
       OPENAI_API_KEY: "not-needed-for-local-development"
       OLLAMA_BASE_URL: "http://host.containers.internal:11434"
       # Langfuse tracing
-      LANGFUSE_HOST: "http://langfuse-web:3000"
+      LANGFUSE_BASE_URL: "http://langfuse-web:3000"
       LANGFUSE_PUBLIC_KEY: "pk-lf-local-dev"
       LANGFUSE_SECRET_KEY: "sk-lf-local-dev"
     volumes:
