@@ -31,7 +31,9 @@ _REDACT_PATTERNS = [
 ]
 
 
-def _redact(text: str) -> str:
+def _redact(text: str | bytes) -> str:
+    if isinstance(text, bytes):
+        text = text.decode("utf-8", errors="replace")
     for pattern in _REDACT_PATTERNS:
         text = pattern.sub(r"\1***REDACTED***", text)
     return text
@@ -96,6 +98,89 @@ def run_make(
         raise MakeTargetError(target, result.returncode, result.stdout, result.stderr)
 
     return result
+
+
+def _run_oc_command(
+    args: list[str],
+    *,
+    timeout: int = 30,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        ["oc", *args],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    if check and result.returncode != 0:
+        raise RuntimeError(
+            f"oc {' '.join(args)} failed ({result.returncode})\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+    return result
+
+
+def create_serviceaccount(name: str, namespace: str) -> None:
+    result = _run_oc_command(
+        ["create", "serviceaccount", name, "-n", namespace],
+        timeout=30,
+        check=False,
+    )
+    if result.returncode == 0:
+        return
+    stderr = result.stderr.lower()
+    if "alreadyexists" in stderr or "already exists" in stderr:
+        return
+    raise RuntimeError(
+        f"Failed to create service account {namespace}/{name}\n"
+        f"stdout: {result.stdout}\n"
+        f"stderr: {result.stderr}"
+    )
+
+
+def delete_serviceaccount(name: str, namespace: str) -> None:
+    _run_oc_command(
+        ["delete", "serviceaccount", name, "-n", namespace, "--ignore-not-found=true"],
+        timeout=30,
+        check=True,
+    )
+
+
+def create_sa_token(
+    service_account: str,
+    namespace: str | None = None,
+    audience: str = "langgraph-react-agent",
+    duration: str = "15m",
+) -> str:
+    """Create a short-lived SA token via `oc create token`."""
+    cmd = [
+        "create",
+        "token",
+        service_account,
+        f"--audience={audience}",
+        f"--duration={duration}",
+    ]
+    if namespace:
+        cmd.extend(["-n", namespace])
+    result = _run_oc_command(cmd, timeout=30, check=True)
+    return result.stdout.strip()
+
+
+def chat_completion_request(
+    base_url: str,
+    messages: list[dict[str, str]],
+    *,
+    headers: dict[str, str] | None = None,
+    verify_tls: bool = False,
+    timeout: float = 60.0,
+) -> httpx.Response:
+    with httpx.Client(verify=verify_tls, timeout=timeout) as client:
+        return client.post(
+            f"{base_url}/chat/completions",
+            json={"messages": messages},
+            headers=headers,
+        )
 
 
 def get_route(agent_name: str, namespace: str | None = None) -> str:

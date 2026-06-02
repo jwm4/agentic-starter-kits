@@ -18,6 +18,9 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
+      {{- if .Values.auth.enabled }}
+      serviceAccountName: {{ .Values.serviceAccount.name | default (include "agent.fullname" .) }}
+      {{- end }}
       containers:
         - name: {{ include "agent.name" . }}
           image: "{{ required "image.repository is required — set CONTAINER_IMAGE in .env" .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -36,6 +39,16 @@ spec:
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
+            {{- end }}
+            {{- if .Values.auth.enabled }}
+            - name: AUTH_ENABLED
+              value: "true"
+            - name: AUTH_AUDIENCE
+              value: {{ .Values.auth.audience | quote }}
+            {{- if .Values.auth.allowedServiceAccounts }}
+            - name: AUTH_ALLOWED_SERVICEACCOUNTS
+              value: {{ join "," .Values.auth.allowedServiceAccounts | quote }}
+            {{- end }}
             {{- end }}
             {{- if .Values.secrets.apiKey }}
             - name: API_KEY

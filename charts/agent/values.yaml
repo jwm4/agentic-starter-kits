@@ -58,6 +58,16 @@ healthCheck:
 volumes: []
 volumeMounts: []
 
+serviceAccount:
+  create: true
+  name: ""
+
+auth:
+  enabled: false
+  audience: ""
+  allowedServiceAccounts: []
+  createAuthDelegatorBinding: false
+
 extraSecrets: {}
   # Arbitrary secret key-value pairs, injected as env vars.
   # Keys must use POSIX convention: [A-Za-z_][A-Za-z0-9_]* (e.g. DEPLOYMENT_TOKEN, not deploy-token).

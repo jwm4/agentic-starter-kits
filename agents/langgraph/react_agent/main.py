@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from os import getenv
 from pathlib import Path
 
+from agent_auth.middleware import SATokenAuthMiddleware
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import (
     FileResponse,
@@ -147,6 +148,11 @@ app = FastAPI(
         {"name": "Health", "description": "Service health monitoring"},
     ],
 )
+app.add_middleware(SATokenAuthMiddleware)
+
+
+def _auth_enabled() -> bool:
+    return getenv("AUTH_ENABLED", "false").strip().lower() == "true"
 
 
 def _build_langchain_messages(messages: list[ChatMessage]) -> list[HumanMessage]:
@@ -411,12 +417,16 @@ if not _IMAGES_DIR.is_dir():
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def playground():
     """Serve the playground chat UI."""
+    if _auth_enabled():
+        raise HTTPException(status_code=404, detail="Not found")
     return FileResponse(_PLAYGROUND_HTML)
 
 
 @app.get("/images/{filename:path}", include_in_schema=False)
 async def serve_image(filename: str):
     """Serve images from the project-level images directory."""
+    if _auth_enabled():
+        raise HTTPException(status_code=404, detail="Not found")
     base = _IMAGES_DIR.resolve()
     file_path = (base / filename).resolve()
     try:
