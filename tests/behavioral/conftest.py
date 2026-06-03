@@ -73,14 +73,7 @@ def pytest_report_header(config: pytest.Config) -> list[str]:
     """Display the target agent URL and MLflow experiment at the top of the test session."""
     lines = []
     urls = []
-    for var in (
-        "AGENT_URL",
-        "REACT_AGENT_URL",
-        "VANILLA_PYTHON_AGENT_URL",
-        "CREWAI_WEBSEARCH_AGENT_URL",
-        "AGENTIC_RAG_AGENT_URL",
-        "DB_MEMORY_AGENT_URL",
-    ):
+    for var in ("AGENT_URL", *_AGENT_URL_MAP.values()):
         val = os.environ.get(var)
         if val:
             urls.append(f"{var}={val}")

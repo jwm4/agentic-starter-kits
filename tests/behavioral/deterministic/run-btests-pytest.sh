@@ -382,10 +382,10 @@ print_agent_detail() {
 
   # --- MLflow enrichment status ---
   local enrichment_failures
-  enrichment_failures=$(grep "MLflow trace enrichment failed\|no trace found" "$logfile" 2>/dev/null | wc -l | tr -d '[:space:]')
+  enrichment_failures=$(grep "MLflow trace enrichment failed\|no trace found" "$logfile" 2>/dev/null | wc -l | tr -d '[:space:]' || true)
   enrichment_failures=${enrichment_failures:-0}
   local tool_calls_not_exposed
-  tool_calls_not_exposed=$(grep "tool_calls not exposed" "$logfile" 2>/dev/null | wc -l | tr -d '[:space:]')
+  tool_calls_not_exposed=$(grep "tool_calls not exposed" "$logfile" 2>/dev/null | wc -l | tr -d '[:space:]' || true)
   tool_calls_not_exposed=${tool_calls_not_exposed:-0}
   local enrichment_ok=true
 
@@ -457,7 +457,7 @@ print_agent_detail() {
 
     # Print unique assertion reasons (deduplicated)
     echo -e "  ${BOLD}Failure Reasons:${RESET}"
-    grep "^E   Assertion" "$logfile" 2>/dev/null | sort -u | while IFS= read -r line; do
+    { grep "^E   Assertion" "$logfile" 2>/dev/null || true; } | sort -u | while IFS= read -r line; do
       local reason
       reason=$(echo "$line" | sed 's/^E   AssertionError: //' | sed 's/^E   AssertionError//')
       if [[ -n "$reason" ]]; then
@@ -467,7 +467,7 @@ print_agent_detail() {
 
     # Check for empty responses
     local empty_count
-    empty_count=$(grep "empty response\|Response: $" "$logfile" 2>/dev/null | wc -l | tr -d '[:space:]')
+    empty_count=$(grep "empty response\|Response: $" "$logfile" 2>/dev/null | wc -l | tr -d '[:space:]' || true)
     empty_count=${empty_count:-0}
     if [[ "$empty_count" -gt 0 ]]; then
       echo -e "    ${RED}Agent returned empty responses in ${empty_count} test(s) — agent may be broken${RESET}"
