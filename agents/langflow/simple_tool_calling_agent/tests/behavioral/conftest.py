@@ -56,9 +56,7 @@ PARK_EVIDENCE = ["national", "park", "hiking", "trail", "monument"]
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 STREAM = False
-FLOW_ID = os.environ.get(
-    "LANGFLOW_FLOW_ID", "fadd303c-8e65-4e0b-b9ea-6d93b0bba255"
-)
+FLOW_ID = os.environ.get("LANGFLOW_FLOW_ID", "fadd303c-8e65-4e0b-b9ea-6d93b0bba255")
 
 
 def load_golden(category: str | None = None) -> list[dict[str, Any]]:

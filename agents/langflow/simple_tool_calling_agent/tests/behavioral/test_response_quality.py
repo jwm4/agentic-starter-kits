@@ -21,9 +21,7 @@ def _queries_with_expected_elements() -> list[dict[str, Any]]:
 
 async def test_plan_coherence(run_eval: Any) -> None:
     """Response should have structure and substance (not a bare one-liner)."""
-    result = await run_eval(
-        "What is the weather like in Boston today?"
-    )
+    result = await run_eval("What is the weather like in Boston today?")
     assert result.success, f"Agent request failed: {result.error}"
     score = score_plan_coherence(result)
     assert score.passed, (
