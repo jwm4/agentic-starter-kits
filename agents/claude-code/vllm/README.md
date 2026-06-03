@@ -14,7 +14,7 @@ Deploy vLLM standalone on OpenShift for use with Claude Code (no OGX, no llm-d).
 
 ## Quick Start
 
-See the full deployment guide: [docs/claude-code-vllm-direct.md](../../docs/claude-code-vllm-direct.md)
+See the full deployment guide: [docs/claude-code-vllm-direct.md](../../../docs/claude-code-vllm-direct.md)
 
 ## Running Tests
 

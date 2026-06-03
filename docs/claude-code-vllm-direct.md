@@ -38,7 +38,7 @@ Before deploying, replace the following placeholders in the manifest files:
 
 ## Step 1: Deploy vLLM
 
-The deployment manifest is at [`infrastructure/vllm/vllm-deployment.yaml`](../infrastructure/vllm/vllm-deployment.yaml). It deploys vLLM as a standalone Deployment — no storage-initializer sidecar, vLLM downloads the model directly at startup.
+The deployment manifest is at [`agents/claude-code/vllm/vllm-deployment.yaml`](../agents/claude-code/vllm/vllm-deployment.yaml). It deploys vLLM as a standalone Deployment — no storage-initializer sidecar, vLLM downloads the model directly at startup.
 
 The vLLM image is from RHOAI (vLLM `0.13.0+rhai19`). Check your RHOAI version for the matching image tag — different RHOAI releases ship different vLLM versions.
 
@@ -46,7 +46,7 @@ Replace the placeholders and apply:
 
 ```bash
 # Edit the placeholders in the manifest first, then apply
-oc apply -f infrastructure/vllm/vllm-deployment.yaml -n <NAMESPACE>
+oc apply -f agents/claude-code/vllm/vllm-deployment.yaml -n <NAMESPACE>
 ```
 
 Wait for the model to download and load (10–30 minutes for large models):
@@ -65,11 +65,11 @@ oc logs -f deployment/<MODEL_SHORT_NAME> -n <NAMESPACE>
 
 ## Step 2: Create External Route
 
-Apply the network policy from [`infrastructure/vllm/vllm-network-policy.yaml`](../infrastructure/vllm/vllm-network-policy.yaml) and create an external route:
+Apply the network policy from [`agents/claude-code/vllm/vllm-network-policy.yaml`](../agents/claude-code/vllm/vllm-network-policy.yaml) and create an external route:
 
 ```bash
 # Network policy — restricts ingress to router and same namespace
-oc apply -f infrastructure/vllm/vllm-network-policy.yaml -n <NAMESPACE>
+oc apply -f agents/claude-code/vllm/vllm-network-policy.yaml -n <NAMESPACE>
 
 # External route (TLS edge termination)
 oc create route edge <MODEL_SHORT_NAME>-external \
@@ -146,14 +146,14 @@ oc exec deployment/claude-code -n <NAMESPACE> -- bash -c '
 
 ## Testing
 
-Test scripts are in [`infrastructure/vllm/tests/`](../infrastructure/vllm/tests/) to validate the full setup.
+Test scripts are in [`agents/claude-code/vllm/tests/`](../agents/claude-code/vllm/tests/) to validate the full setup.
 
 ### vLLM Endpoint Validation
 
 Tests vLLM's OpenAI and Anthropic API endpoints directly (no Claude Code). Requires only `curl` and `jq`.
 
 ```bash
-bash infrastructure/vllm/tests/test_vllm_endpoints.sh \
+bash agents/claude-code/vllm/tests/test_vllm_endpoints.sh \
   --url https://<VLLM_EXTERNAL_ROUTE> \
   --model <MODEL_NAME> \
   --insecure  # only if using self-signed certs
@@ -166,7 +166,7 @@ Tests: health check, model listing, OpenAI chat (streaming + non-streaming), Ant
 Tests Claude Code CLI functionality via `oc exec`. Requires `oc` logged into the cluster.
 
 ```bash
-bash infrastructure/vllm/tests/test_claude_code_matrix.sh \
+bash agents/claude-code/vllm/tests/test_claude_code_matrix.sh \
   --namespace <NAMESPACE> \
   --deployment claude-code
 ```
@@ -178,7 +178,7 @@ Tests: single-turn prompt, multi-step reasoning, bash tool use, file read tool u
 Measures latency, TTFB, and throughput across request types. Results are saved to a timestamped JSON file for later comparison.
 
 ```bash
-bash infrastructure/vllm/tests/test_vllm_latency.sh \
+bash agents/claude-code/vllm/tests/test_vllm_latency.sh \
   --url https://<VLLM_EXTERNAL_ROUTE> \
   --model <MODEL_NAME> \
   --runs 3 \
