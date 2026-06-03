@@ -726,11 +726,10 @@ if [[ -n "${LANGFLOW_ROUTE:-}" ]]; then
       "https://${LANGFLOW_ROUTE}/api/v1/flows/" \
       | python3 -c "import sys,json; flows=json.load(sys.stdin); print(flows[0]['id'] if flows else '')" 2>/dev/null || true)
   fi
-  if [[ -n "${LANGFLOW_FLOW_ID}" ]]; then
-    preflight_ok "Langflow flow_id: ${LANGFLOW_FLOW_ID}"
+  if [[ -z "${LANGFLOW_FLOW_ID}" ]]; then
+    preflight_warn "Could not discover Langflow flow_id. Set LANGFLOW_FLOW_ID manually; skipping Langflow eval."
   else
-    preflight_warn "Could not discover Langflow flow_id. Set LANGFLOW_FLOW_ID manually."
-  fi
+    preflight_ok "Langflow flow_id: ${LANGFLOW_FLOW_ID}"
 
 cat > "${WORK_DIR}/eval-langflow-tool-calling-agent.yaml" <<EOF
 name: agentic-tool-use-langflow-tool-calling-agent
@@ -754,7 +753,8 @@ benchmarks:
       mlflow_experiment_name: ${MLFLOW_EXPERIMENT}
       mlflow_trace_experiment_name: ${MLFLOW_AGENT_EXPERIMENT}
 EOF
-  echo "  Created: eval-langflow-tool-calling-agent.yaml"
+    echo "  Created: eval-langflow-tool-calling-agent.yaml"
+  fi
 fi
 
 # ---------------------------------------------------------------------------

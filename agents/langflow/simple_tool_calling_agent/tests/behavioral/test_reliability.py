@@ -18,7 +18,7 @@ import warnings
 from typing import Any
 
 import pytest
-from conftest import WEATHER_EVIDENCE
+from conftest import TOOL_OUTPUT_EVIDENCE
 from harness.scorers.plan_coherence import score_plan_coherence
 from harness.scorers.tool_sequence import score_tool_selection
 
@@ -60,7 +60,7 @@ async def test_pass_at_k_tool_usage(
         else:
             used_fallback += 1
             text_lower = result.response.lower()
-            if any(term in text_lower for term in WEATHER_EVIDENCE):
+            if any(term in text_lower for term in TOOL_OUTPUT_EVIDENCE):
                 passed_count += 1
 
     if used_fallback == k - failures:

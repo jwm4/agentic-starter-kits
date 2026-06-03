@@ -16,7 +16,7 @@ import warnings
 from typing import Any
 
 import pytest
-from conftest import PARK_EVIDENCE, WEATHER_EVIDENCE, load_golden
+from conftest import TOOL_OUTPUT_EVIDENCE, load_golden
 from harness.scorers.tool_sequence import (
     score_hallucinated_tools,
     score_tool_call_validity,
@@ -111,9 +111,8 @@ async def test_tool_not_called_for_greeting(run_eval: Any) -> None:
         )
 
     text_lower = result.response.lower()
-    weather_in_greeting = any(term in text_lower for term in WEATHER_EVIDENCE)
-    park_in_greeting = any(term in text_lower for term in PARK_EVIDENCE)
-    assert not (weather_in_greeting and park_in_greeting), (
+    tool_output_in_greeting = any(term in text_lower for term in TOOL_OUTPUT_EVIDENCE)
+    assert not tool_output_in_greeting, (
         "Greeting response appears to contain tool output — "
         "agent may have called tools for a simple greeting"
     )

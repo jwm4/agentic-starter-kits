@@ -15,11 +15,8 @@ from harness.runner import TaskConfig, TaskResult, run_task
 
 @pytest.fixture
 def agent_url() -> str:
-    """Langflow agent URL from env var or default cluster route."""
-    return os.environ.get(
-        "LANGFLOW_AGENT_URL",
-        "https://langflow-langflow-agent.apps.rosa.agen-e2e-rhoai2.p5ui.p3.openshiftapps.com",
-    )
+    """Langflow agent URL from env var or default localhost."""
+    return os.environ.get("LANGFLOW_AGENT_URL", "http://localhost:7860")
 
 
 @pytest.fixture
@@ -51,12 +48,15 @@ def eval_config() -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
-WEATHER_EVIDENCE = ["forecast", "°c", "°f", "precipitation", "wind", "high", "low"]
-PARK_EVIDENCE = ["national", "park", "hiking", "trail", "monument"]
+TOOL_OUTPUT_EVIDENCE = ["°c", "°f", "precipitation", "km/h", "national park", "nps.gov"]
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 STREAM = False
-FLOW_ID = os.environ.get("LANGFLOW_FLOW_ID", "fadd303c-8e65-4e0b-b9ea-6d93b0bba255")
+FLOW_ID = os.environ.get("LANGFLOW_FLOW_ID", "")
+if not FLOW_ID:
+    raise EnvironmentError(
+        "LANGFLOW_FLOW_ID is required — discover via GET /api/v1/flows/"
+    )
 
 
 def load_golden(category: str | None = None) -> list[dict[str, Any]]:
