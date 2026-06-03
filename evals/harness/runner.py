@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -135,16 +136,23 @@ def _extract_token_usage(response_data: dict[str, Any]) -> int | None:
     return usage.get("total_tokens")
 
 
+def _get_langflow_output(response_data: dict[str, Any]) -> dict[str, Any] | None:
+    """Navigate to the first output node from a Langflow /api/v1/run response."""
+    try:
+        return response_data["outputs"][0]["outputs"][0]
+    except (KeyError, IndexError, TypeError):
+        return None
+
+
 def _extract_langflow_response_text(response_data: dict[str, Any]) -> str:
     """Extract assistant message text from a Langflow /api/v1/run response."""
-    try:
-        output = response_data["outputs"][0]["outputs"][0]
-        text = output.get("results", {}).get("message", {}).get("text")
-        if text:
-            return text
-        return output.get("artifacts", {}).get("message", "") or ""
-    except (KeyError, IndexError, TypeError):
+    output = _get_langflow_output(response_data)
+    if output is None:
         return ""
+    text = output.get("results", {}).get("message", {}).get("text")
+    if text:
+        return text
+    return output.get("artifacts", {}).get("message", "") or ""
 
 
 def _extract_langflow_tool_calls(
@@ -155,26 +163,20 @@ def _extract_langflow_tool_calls(
     Navigates outputs[0].outputs[0].results.message.content_blocks[*].contents[*]
     and maps Langflow's ``tool_input`` field to ``arguments`` for scorer compatibility.
     """
+    output = _get_langflow_output(response_data)
+    if output is None:
+        return []
     tool_calls: list[dict[str, Any]] = []
-    try:
-        message = (
-            response_data["outputs"][0]["outputs"][0]
-            .get("results", {})
-            .get("message", {})
-        )
-        for block in message.get("content_blocks", []):
-            for entry in block.get("contents", []):
-                if entry.get("type") == "tool_use":
-                    tool_calls.append(
-                        {
-                            "name": entry.get("name", ""),
-                            "arguments": entry.get("tool_input", {}),
-                        }
-                    )
-    except (KeyError, IndexError, TypeError):
-        logger.debug(
-            "Failed to extract Langflow tool calls from response", exc_info=True
-        )
+    message = output.get("results", {}).get("message", {})
+    for block in message.get("content_blocks", []):
+        for entry in block.get("contents", []):
+            if entry.get("type") == "tool_use":
+                tool_calls.append(
+                    {
+                        "name": entry.get("name", ""),
+                        "arguments": entry.get("tool_input", {}),
+                    }
+                )
     return tool_calls
 
 
@@ -282,6 +284,11 @@ async def run_task(
     if is_langflow:
         if not config.flow_id:
             raise ValueError("flow_id is required when api_format is 'langflow_run'")
+        if not re.fullmatch(r"[a-zA-Z0-9_-]+", config.flow_id):
+            raise ValueError(
+                f"flow_id must contain only alphanumeric characters, hyphens, "
+                f"and underscores — got '{config.flow_id}'"
+            )
         url = f"{config.agent_url.rstrip('/')}/api/v1/run/{config.flow_id}"
         payload: dict[str, Any] = {
             "input_value": config.query,

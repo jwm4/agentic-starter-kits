@@ -6,12 +6,15 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 from urllib.parse import urlparse
 
 from harness.runner import TaskConfig
 
 logger = logging.getLogger(__name__)
+
+ApiFormat = Literal["chat_completions", "langflow_run"]
+_VALID_API_FORMATS = get_args(ApiFormat)
 
 _ALLOWED_URL_SCHEMES = {"https", "http"}
 _BLOCKED_HOSTS = {
@@ -98,7 +101,7 @@ class AgenticEvalParams:
     verify_ssl: bool = True
     fixtures_path: str = "fixtures"
     stream: bool = False
-    api_format: Literal["chat_completions", "langflow_run"] = "chat_completions"
+    api_format: ApiFormat = "chat_completions"
     flow_id: str | None = None
 
     # MLflow trace enrichment (reads tool calls from agent-side traces)
@@ -109,9 +112,9 @@ class AgenticEvalParams:
 
     def __post_init__(self) -> None:
         """Validate fields and apply defaults after dataclass init."""
-        if self.api_format not in ("chat_completions", "langflow_run"):
+        if self.api_format not in _VALID_API_FORMATS:
             raise ValueError(
-                f"api_format must be 'chat_completions' or 'langflow_run', "
+                f"api_format must be one of {_VALID_API_FORMATS}, "
                 f"got '{self.api_format}'"
             )
         if self.api_format == "langflow_run" and not self.flow_id:
