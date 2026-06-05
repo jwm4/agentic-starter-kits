@@ -14,6 +14,18 @@
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
+# Cleanup: kill background test processes on exit/interrupt
+# ---------------------------------------------------------------------------
+CHILD_PIDS=()
+cleanup() {
+  if [[ ${#CHILD_PIDS[@]} -gt 0 ]]; then
+    kill "${CHILD_PIDS[@]}" 2>/dev/null || true
+    wait "${CHILD_PIDS[@]}" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT INT TERM
+
+# ---------------------------------------------------------------------------
 # Colors
 # ---------------------------------------------------------------------------
 RED='\033[0;31m'
@@ -127,7 +139,7 @@ preflight() {
   # Validate AGENTS env vars match conftest._AGENT_URL_MAP
   log "Validating agent config against conftest..."
   local conftest_vars
-  conftest_vars=$(python3 -c "
+  conftest_vars=$(uv run python -c "
 import sys, importlib.util
 spec = importlib.util.spec_from_file_location('conftest', '${REPO_ROOT}/tests/behavioral/conftest.py')
 mod = importlib.util.module_from_spec(spec)
@@ -156,7 +168,7 @@ for v in mod._AGENT_URL_MAP.values():
       ok "AGENTS array in sync with conftest._AGENT_URL_MAP"
     fi
   else
-    warn "Could not validate against conftest (python3 import failed)"
+    warn "Could not validate against conftest (uv run python import failed)"
   fi
 
   # Cluster domain — detect from any route in the namespace
@@ -273,7 +285,7 @@ run_tests() {
   echo ""
 
   # Launch all agents in parallel
-  local pids=()
+  CHILD_PIDS=()
   local pid_to_agent=()
 
   for agent_tuple in "${AGENTS[@]}"; do
@@ -309,6 +321,7 @@ run_tests() {
     log "Launching: ${BOLD}${path}${RESET} -> ${logfile}"
 
     (
+      set -euo pipefail
       cd "${REPO_ROOT}"
       export "${env_var}=${agent_url}"
       export MLFLOW_TRACKING_URI="${MLFLOW_TRACKING_URI:-}"
@@ -320,11 +333,11 @@ run_tests() {
       uv run --extra test python -m pytest "${test_path}" -v --tb=short
     ) > "${logfile}" 2>&1 &
     local pid=$!
-    pids+=("$pid")
+    CHILD_PIDS+=("$pid")
     pid_to_agent+=("${pid}:${path}")
   done
 
-  log "All ${#pids[@]} test suites launched. Waiting for completion..."
+  log "All ${#CHILD_PIDS[@]} test suites launched. Waiting for completion..."
   echo ""
 
   # Wait for all and capture exit codes
