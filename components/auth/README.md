@@ -56,7 +56,7 @@ From `agents/langgraph/react_agent/.env`:
 ```dotenv
 AUTH_ENABLED=true
 AUTH_AUDIENCE=langgraph-react-agent
-AUTH_ALLOWED_SERVICEACCOUNT=ci-testing:langgraph-react-agent-caller
+AUTH_ALLOWED_SERVICEACCOUNTS=ci-testing:langgraph-react-agent-caller
 ```
 
 Then:
