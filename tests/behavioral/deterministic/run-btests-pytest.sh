@@ -161,9 +161,7 @@ for v in mod._AGENT_URL_MAP.values():
       fi
     done <<< "$conftest_vars"
     if [[ -n "$missing" ]]; then
-      warn "conftest._AGENT_URL_MAP has env vars not in AGENTS array:"
-      echo -e "${YELLOW}${missing}${RESET}"
-      warn "Update AGENTS in this script to match conftest.py"
+      die "$(printf 'AGENTS array is out of sync with conftest._AGENT_URL_MAP:\n%s' "$missing")"
     else
       ok "AGENTS array in sync with conftest._AGENT_URL_MAP"
     fi
