@@ -47,7 +47,7 @@ queries:
     difficulty: hard
     category: ambiguous
 
-  # --- Easy: park_alerts (single tool) ---
+  # --- Easy: get_alerts (single tool) ---
   - query: "Are there any alerts or closures at Yellowstone right now?"
     expected_tools: ["get_alerts"]
     expected_elements: ["yellowstone"]
