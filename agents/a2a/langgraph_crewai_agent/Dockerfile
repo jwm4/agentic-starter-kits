@@ -9,7 +9,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 COPY pyproject.toml .
 COPY src ./src
-RUN uv pip install --system --no-cache .
+# Always install MLflow tracing deps for container images (Kagenti auto-configures
+# MLflow tracing when deployed to MLflow operator from RHOAI)
+RUN uv pip install --system --no-cache ".[tracing]"
 
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh

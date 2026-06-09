@@ -94,8 +94,8 @@ async def send_a2a_text_message(
             base,
             req.id,
             len(text),
+            preview,
         )
-        logger.debug("A2A → prompt preview: %r", preview)
         logger.debug("A2A → request (message/send params): %s", _json_for_log(req))
 
         try:
