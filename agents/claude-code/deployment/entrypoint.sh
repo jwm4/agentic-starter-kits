@@ -60,6 +60,18 @@ log_error() {
 }
 
 # -----------------------------------------------------------------------------
+# Onboarding
+# -----------------------------------------------------------------------------
+
+setup_onboarding() {
+    local claude_json="${HOME}/.claude.json"
+    log_info "Marking onboarding as complete (skips interactive login wizard)"
+    rm -f "${claude_json}" 2>/dev/null || true
+    echo '{"hasCompletedOnboarding": true}' > "${claude_json}"
+    chmod 664 "${claude_json}"
+}
+
+# -----------------------------------------------------------------------------
 # Validation
 # -----------------------------------------------------------------------------
 
@@ -96,6 +108,22 @@ validate_environment() {
 }
 
 # -----------------------------------------------------------------------------
+# Git Credentials
+# -----------------------------------------------------------------------------
+
+setup_git_credentials() {
+    if [[ -n "${GITHUB_PAT:-}" ]]; then
+        log_info "Configuring git credentials for github.com"
+        git config --global credential.helper store
+        local cred_file="${HOME}/.git-credentials"
+        echo "https://x-access-token:${GITHUB_PAT}@github.com" > "${cred_file}"
+        chmod 600 "${cred_file}"
+        git config --global user.name "${GIT_USER_NAME:-claude-agent}"
+        git config --global user.email "${GIT_USER_EMAIL:-claude-agent@noreply.github.com}"
+    fi
+}
+
+# -----------------------------------------------------------------------------
 # MCP Configuration
 # -----------------------------------------------------------------------------
 
@@ -125,6 +153,48 @@ setup_mcp() {
 
     # Export for use in command building
     export MCP_ARGS="${mcp_args[*]:-}"
+}
+
+# -----------------------------------------------------------------------------
+# MLflow Tracing
+# -----------------------------------------------------------------------------
+
+setup_mlflow() {
+    if [[ -z "${MLFLOW_TRACKING_URI:-}" ]]; then
+        return
+    fi
+
+    if ! command -v mlflow >/dev/null 2>&1; then
+        log_warn "MLFLOW_TRACKING_URI is set but mlflow is not installed"
+        return
+    fi
+
+    log_info "Configuring MLflow tracing"
+    mlflow autolog claude \
+        -u "${MLFLOW_TRACKING_URI}" \
+        -n "${MLFLOW_EXPERIMENT_NAME:-claude-code-traces}" \
+        /workspace
+
+    # Inject MLflow auth env vars into the generated settings
+    python3 -c '
+import json, os
+sf = "/workspace/.claude/settings.json"
+if not os.path.exists(sf):
+    print(f"[entrypoint] WARN: {sf} not found, skipping MLflow settings injection")
+    raise SystemExit(0)
+with open(sf) as f:
+    s = json.load(f)
+env = s.setdefault("env", {})
+if os.environ.get("MLFLOW_TRACKING_AUTH"):
+    env["MLFLOW_TRACKING_AUTH"] = os.environ["MLFLOW_TRACKING_AUTH"]
+if os.environ.get("MLFLOW_WORKSPACE"):
+    env["MLFLOW_WORKSPACE"] = os.environ["MLFLOW_WORKSPACE"]
+if os.environ.get("MLFLOW_TRACKING_INSECURE_TLS"):
+    env["MLFLOW_TRACKING_INSECURE_TLS"] = os.environ["MLFLOW_TRACKING_INSECURE_TLS"]
+with open(sf, "w") as f:
+    json.dump(s, f, indent=2)
+print("[entrypoint] INFO: MLflow settings injected into " + sf)
+'
 }
 
 # -----------------------------------------------------------------------------
@@ -223,8 +293,11 @@ main() {
     log_info "Claude Code version: $(claude --version 2>/dev/null || echo 'unknown')"
 
     # Run setup functions
+    setup_onboarding
     validate_environment
+    setup_git_credentials
     setup_mcp
+    setup_mlflow
     setup_skills
     build_claude_args
 

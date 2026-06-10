@@ -51,8 +51,17 @@ RUN microdnf install -y --nodocs \
         git \
         curl \
         jq \
+        python3.12 \
+        python3.12-pip \
+    && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
+    && ln -sf /usr/bin/python3.12 /usr/bin/python \
     && microdnf clean all \
     && rm -rf /var/cache/yum
+
+# Install MLflow with Kubernetes auth plugin (Red Hat fork for RHOAI 3.4)
+# Replace with mlflow[kubernetes]>=3.11 when RHOAI ships upstream MLflow 3.11
+RUN python3.12 -m pip install --no-cache-dir \
+  'mlflow[kubernetes] @ git+https://github.com/red-hat-data-services/mlflow.git@v3.10.1+rhaiv.3'
 
 # =============================================================================
 # Create Non-Root User
