@@ -68,7 +68,7 @@ oc apply -f deployment.yaml
 oc start-build claude-code --from-dir=. --follow
 ```
 
-**Rebuilding:** If you rebuild the image after the initial deployment (e.g., after modifying the Containerfile), the running pod will not pick up the new image automatically. Re-apply the deployment manifest and restart:
+**Rebuilding:** After running `oc start-build` to rebuild the image (e.g., after modifying the Containerfile), the running pod will not pick up the new image automatically. Re-apply the deployment manifest and restart:
 
 ```bash
 oc apply -f deployment.yaml
@@ -249,7 +249,7 @@ oc rollout restart deployment/claude-code-vertex
 oc start-build claude-code --from-dir=. --follow
 ```
 
-**Rebuilding:** If you rebuild the image after the initial deployment (e.g., after modifying the Containerfile), the running pod will not pick up the new image automatically. Re-apply the deployment manifest and restart:
+**Rebuilding:** After running `oc start-build` to rebuild the image (e.g., after modifying the Containerfile), the running pod will not pick up the new image automatically. Re-apply the deployment manifest and restart:
 
 ```bash
 oc apply -f deployment-vertex.yaml
@@ -437,7 +437,7 @@ oc apply -f deployment-vllm.yaml
 oc start-build claude-code --from-dir=. --follow
 ```
 
-**Rebuilding:** If you rebuild the image after the initial deployment (e.g., after modifying the Containerfile), the running pod will not pick up the new image automatically. Re-apply the deployment manifest and restart:
+**Rebuilding:** After running `oc start-build` to rebuild the image (e.g., after modifying the Containerfile), the running pod will not pick up the new image automatically. Re-apply the deployment manifest and restart:
 
 ```bash
 oc apply -f deployment-vllm.yaml
@@ -590,7 +590,7 @@ oc apply -f deployment-ogx-vllm.yaml
 oc start-build claude-code --from-dir=. --follow
 ```
 
-**Rebuilding:** If you rebuild the image after the initial deployment (e.g., after modifying the Containerfile), the running pod will not pick up the new image automatically. Re-apply the deployment manifest and restart:
+**Rebuilding:** After running `oc start-build` to rebuild the image (e.g., after modifying the Containerfile), the running pod will not pick up the new image automatically. Re-apply the deployment manifest and restart:
 
 ```bash
 oc apply -f deployment-ogx-vllm.yaml
@@ -751,6 +751,14 @@ When an AI agent has push access to a Git repository, you should ensure the repo
 
 These protections apply regardless of whether you are using Claude Code or any other AI coding tool. They are standard best practices for collaborative development, but become critical when an automated agent has commit and push access.
 
+### Credential Isolation
+
+When credentials such as GitHub PATs or API tokens are passed as environment variables or written to files inside the container, the agent can read them directly. This means the agent could inadvertently expose credentials in conversation output, commit messages, or through MCP server calls. This is a known limitation of the approach described in this guide.
+
+For many use cases, this risk is acceptable when combined with the safeguards above: limiting PAT scope to the minimum required permissions, protecting branches, and requiring PR reviews. However, for environments with strict security requirements, the ideal approach is to isolate the agent from the credentials it depends on, so that it can use tools (like git push or GitHub APIs) without being able to see or exfiltrate the underlying secrets.
+
+Container isolation solutions are actively exploring ways to provide this kind of separation. If credential isolation is a requirement for your deployment, consider evaluating such solutions as they mature.
+
 ---
 
 ## Customization
@@ -813,7 +821,7 @@ MCP (Model Context Protocol) servers extend Claude Code with additional tools. M
 
 **Common MCP server examples:**
 
-GitHub (official remote MCP server, requires a [Personal Access Token](https://github.com/settings/tokens)):
+GitHub (official remote MCP server, requires a [Personal Access Token](https://github.com/settings/tokens)). The `${GITHUB_PAT}` variable is expanded at runtime from the container's environment; inject it via a Kubernetes Secret (see "Injecting secrets" below):
 
 ```json
 {

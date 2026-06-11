@@ -26,6 +26,18 @@
 #     MCP_CONFIG_FILE          - Path to MCP configuration JSON file
 #     MCP_CONFIG_JSON          - MCP configuration as inline JSON string
 #
+#   Git Credentials:
+#     GITHUB_PAT               - GitHub Personal Access Token for push access
+#     GIT_USER_NAME            - Git commit author name (default: claude-agent)
+#     GIT_USER_EMAIL           - Git commit author email (default: claude-agent@noreply.github.com)
+#
+#   MLflow Tracing (optional):
+#     MLFLOW_TRACKING_URI      - MLflow server URI (enables tracing when set)
+#     MLFLOW_EXPERIMENT_NAME   - Experiment name (default: claude-code-traces)
+#     MLFLOW_TRACKING_AUTH     - Auth plugin name (default: kubernetes-namespaced)
+#     MLFLOW_WORKSPACE         - MLflow workspace (typically the namespace)
+#     MLFLOW_TRACKING_INSECURE_TLS - Set to "true" to skip TLS cert verification
+#
 #   Permissions:
 #     SKIP_PERMISSIONS         - Set to "true" to bypass permission checks (sandboxed environments only)
 #
@@ -66,9 +78,16 @@ log_error() {
 setup_onboarding() {
     local claude_json="${HOME}/.claude.json"
     log_info "Marking onboarding as complete (skips interactive login wizard)"
-    rm -f "${claude_json}" 2>/dev/null || true
+    if [[ -f "${claude_json}" ]]; then
+        local merged
+        merged=$(jq '.hasCompletedOnboarding = true' "${claude_json}" 2>/dev/null) \
+            && echo "${merged}" > "${claude_json}" \
+            && return
+        # jq failed (malformed JSON or permissions), fall through to overwrite
+        rm -f "${claude_json}" 2>/dev/null || true
+    fi
     echo '{"hasCompletedOnboarding": true}' > "${claude_json}"
-    chmod 664 "${claude_json}"
+    chmod 660 "${claude_json}"
 }
 
 # -----------------------------------------------------------------------------
@@ -170,31 +189,45 @@ setup_mlflow() {
     fi
 
     log_info "Configuring MLflow tracing"
-    mlflow autolog claude \
+
+    export MLFLOW_TRACKING_AUTH="${MLFLOW_TRACKING_AUTH:-kubernetes-namespaced}"
+    export MLFLOW_TRACKING_INSECURE_TLS="${MLFLOW_TRACKING_INSECURE_TLS:-false}"
+
+    if [[ "${MLFLOW_TRACKING_INSECURE_TLS}" == "true" ]]; then
+        log_warn "MLflow TLS certificate verification is disabled (MLFLOW_TRACKING_INSECURE_TLS=true)"
+    fi
+
+    if ! mlflow autolog claude \
+        -d /workspace \
         -u "${MLFLOW_TRACKING_URI}" \
-        -n "${MLFLOW_EXPERIMENT_NAME:-claude-code-traces}" \
-        /workspace
+        -n "${MLFLOW_EXPERIMENT_NAME:-claude-code-traces}"; then
+        log_warn "mlflow autolog failed. Tracing will not be available, but Claude Code will still work."
+        return
+    fi
 
     # Inject MLflow auth env vars into the generated settings
-    python3 -c '
-import json, os
+    if ! python3 -c '
+import json, os, sys
 sf = "/workspace/.claude/settings.json"
 if not os.path.exists(sf):
     print(f"[entrypoint] WARN: {sf} not found, skipping MLflow settings injection")
-    raise SystemExit(0)
-with open(sf) as f:
-    s = json.load(f)
+    sys.exit(0)
+try:
+    with open(sf) as f:
+        s = json.load(f)
+except json.JSONDecodeError:
+    print(f"[entrypoint] WARN: {sf} contains invalid JSON, skipping MLflow settings injection")
+    sys.exit(0)
 env = s.setdefault("env", {})
-if os.environ.get("MLFLOW_TRACKING_AUTH"):
-    env["MLFLOW_TRACKING_AUTH"] = os.environ["MLFLOW_TRACKING_AUTH"]
-if os.environ.get("MLFLOW_WORKSPACE"):
-    env["MLFLOW_WORKSPACE"] = os.environ["MLFLOW_WORKSPACE"]
-if os.environ.get("MLFLOW_TRACKING_INSECURE_TLS"):
-    env["MLFLOW_TRACKING_INSECURE_TLS"] = os.environ["MLFLOW_TRACKING_INSECURE_TLS"]
+env["MLFLOW_TRACKING_AUTH"] = os.environ.get("MLFLOW_TRACKING_AUTH", "kubernetes-namespaced")
+env["MLFLOW_WORKSPACE"] = os.environ.get("MLFLOW_WORKSPACE", "")
+env["MLFLOW_TRACKING_INSECURE_TLS"] = os.environ.get("MLFLOW_TRACKING_INSECURE_TLS", "false")
 with open(sf, "w") as f:
     json.dump(s, f, indent=2)
 print("[entrypoint] INFO: MLflow settings injected into " + sf)
-'
+'; then
+        log_warn "MLflow settings injection failed. Tracing may not authenticate correctly."
+    fi
 }
 
 # -----------------------------------------------------------------------------
