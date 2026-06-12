@@ -36,9 +36,9 @@ pre-commit run --all-files
 Every agent directory that has a `pyproject.toml` must also contain a committed `uv.lock` file so that builds are fully reproducible. When adding a new agent or modifying dependencies:
 
 1. **Use lower-bound pins** (e.g. `>=1.2.0`) in `pyproject.toml` to express minimum required versions. Avoid upper-bound caps in most cases — the lock file handles reproducibility. Upper bounds may be necessary when a dependency has known breaking changes or framework-imposed compatibility constraints.
-2. **Run `uv lock`** in the agent directory after any `pyproject.toml` change to regenerate the lock file.
-3. **Run `uv lock --check`** to verify the lock file is consistent with `pyproject.toml` before committing.
-4. **Commit `uv.lock`** alongside `pyproject.toml` changes — never `.gitignore` it.
+2. **Lock files are auto-updated** — the `uv-lock` pre-commit hook runs `uv lock` automatically when you modify a `pyproject.toml`. If the lock file changes, the hook will update it and fail the commit; simply re-commit to include the updated lock file.
+3. **Commit `uv.lock`** alongside `pyproject.toml` changes — never `.gitignore` it.
+4. CI enforces lock file consistency via `uv lock --check` in the Code Quality workflow.
 
 ## Pre-commit hooks
 
@@ -67,7 +67,7 @@ General-purpose checks from [pre-commit/pre-commit-hooks](https://github.com/pre
 | ---- | ------------ |
 | `trailing-whitespace` | Removes trailing whitespace from all files |
 | `end-of-file-fixer` | Ensures every file ends with a newline |
-| `check-yaml` | Validates YAML syntax (excludes `charts/` — Helm templates use Go syntax) |
+| `check-yaml` | Validates YAML syntax (excludes `agents/*/deployment/` — Helm templates use Go syntax) |
 | `check-json` | Validates JSON syntax |
 | `check-toml` | Validates TOML syntax |
 | `check-merge-conflict` | Detects leftover merge conflict markers |
@@ -77,6 +77,10 @@ General-purpose checks from [pre-commit/pre-commit-hooks](https://github.com/pre
 | `mixed-line-ending` | Ensures consistent line endings (no mixed LF/CRLF) |
 | `no-commit-to-branch` | Blocks direct commits to `main` |
 | `detect-private-key` | Catches accidentally committed private keys |
+
+### Lock file sync (uv-lock)
+
+Runs `uv lock` on any modified `pyproject.toml` and auto-updates the corresponding `uv.lock` if it's stale. The commit will fail with "files were modified by this hook" — simply re-commit to include the updated lock file.
 
 ### GitHub Actions workflow validation (actionlint)
 
@@ -163,7 +167,7 @@ Every pull request is automatically labeled when opened or updated:
 | `area/google-adk` | `agents/google/**` |
 | `area/a2a` | `agents/a2a/**` |
 | `area/vanilla-python` | `agents/vanilla_python/**` |
-| `area/helm` | `charts/**` |
+| `area/helm` | `agents/*/deployment/**` |
 | `area/docs` | `docs/**`, `*.md` (root) |
 | `area/ci` | `.github/**` |
 | `area/tests` | `tests/**`, `eval/**` |
